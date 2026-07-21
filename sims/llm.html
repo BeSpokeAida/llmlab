@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LLMLab — Dentro un LLM · BespokeAIDA</title>
+<style>
+:root{
+  --bg:#0b1020;
+  --bg2:#111a33;
+  --panel:#151f3a;
+  --panel2:#10182d;
+  --line:#2d3c67;
+  --text:#edf3ff;
+  --muted:#9fb2d8;
+  --cyan:#38d9ff;
+  --blue:#6ea8ff;
+  --purple:#a78bfa;
+  --green:#64f4ac;
+  --yellow:#ffd166;
+  --orange:#ff9f43;
+  --red:#ff6b6b;
+  --pink:#ff7ad9;
+  --white:#ffffff;
+  --shadow: 0 20px 60px rgba(0,0,0,.35);
+  --radius:22px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  background:
+    radial-gradient(circle at 20% 5%, rgba(56,217,255,.18), transparent 30%),
+    radial-gradient(circle at 88% 15%, rgba(167,139,250,.18), transparent 28%),
+    radial-gradient(circle at 50% 95%, rgba(100,244,172,.12), transparent 30%),
+    linear-gradient(135deg, #070b16 0%, var(--bg) 50%, #0d1325 100%);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+.app{
+  width:min(1520px, 96vw);
+  margin:0 auto;
+  padding:22px 0 36px;
+}
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:22px;
+  margin-bottom:16px;
+}
+.title h1{
+  margin:0;
+  font-size: clamp(26px, 3vw, 44px);
+  letter-spacing:-.04em;
+  line-height:1.02;
+}
+.title p{
+  margin:8px 0 0;
+  color:var(--muted);
+  font-size:15px;
+}
+.badge{
+  border:1px solid rgba(255,255,255,.12);
+  padding:12px 16px;
+  border-radius:999px;
+  background:rgba(255,255,255,.055);
+  backdrop-filter:blur(10px);
+  color:#d9e6ff;
+  box-shadow:var(--shadow);
+  white-space:nowrap;
+}
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px;
+  background:rgba(15,23,42,.72);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  margin-bottom:14px;
+}
+.control-left,.control-right{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+button{
+  border:0;
+  border-radius:14px;
+  color:var(--text);
+  background:linear-gradient(135deg, rgba(56,217,255,.24), rgba(167,139,250,.22));
+  border:1px solid rgba(255,255,255,.12);
+  padding:11px 15px;
+  font-weight:750;
+  cursor:pointer;
+  transition:.2s ease;
+}
+button:hover{transform:translateY(-1px); box-shadow:0 8px 28px rgba(56,217,255,.13)}
+button.secondary{background:rgba(255,255,255,.06)}
+label{
+  color:var(--muted);
+  font-size:13px;
+  display:flex;align-items:center;gap:8px;
+}
+input[type="range"]{accent-color:var(--cyan)}
+.kv{
+  display:flex; gap:8px; align-items:center;
+  color:var(--muted);
+  font-size:13px;
+  padding:9px 12px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+}
+.kv strong{color:var(--white)}
+.progressWrap{
+  width:100%;
+  height:10px;
+  background:rgba(255,255,255,.08);
+  border-radius:999px;
+  overflow:hidden;
+  margin-bottom:18px;
+  border:1px solid rgba(255,255,255,.07);
+}
+#progressFill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--cyan),var(--purple),var(--green));
+  border-radius:999px;
+  transition:width .55s ease;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns: 310px minmax(620px, 1fr) 360px;
+  gap:16px;
+}
+@media (max-width: 1150px){
+  .layout{grid-template-columns:1fr}
+}
+.panel{
+  position:relative;
+  background:linear-gradient(180deg, rgba(21,31,58,.88), rgba(14,22,42,.88));
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--radius);
+  padding:16px;
+  min-height:96px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  transition:.35s ease;
+}
+.panel + .panel{margin-top:14px}
+.panel:before{
+  content:"";
+  position:absolute; inset:-1px;
+  background:radial-gradient(circle at 15% 0%, rgba(56,217,255,.15), transparent 35%);
+  pointer-events:none;
+  opacity:.75;
+}
+.panel.active{
+  border-color:rgba(56,217,255,.78);
+  box-shadow:0 0 0 1px rgba(56,217,255,.2), 0 0 36px rgba(56,217,255,.18), var(--shadow);
+  transform:translateY(-1px);
+}
+.panel h3{
+  margin:0 0 10px;
+  display:flex; align-items:center; gap:8px;
+  font-size:15px;
+  letter-spacing:-.02em;
+}
+.panel small{display:block; color:var(--muted); line-height:1.45}
+.dot{
+  width:10px;height:10px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 16px var(--cyan);
+}
+.dot.purple{background:var(--purple);box-shadow:0 0 16px var(--purple)}
+.dot.green{background:var(--green);box-shadow:0 0 16px var(--green)}
+.dot.yellow{background:var(--yellow);box-shadow:0 0 16px var(--yellow)}
+.dot.orange{background:var(--orange);box-shadow:0 0 16px var(--orange)}
+
+.contextText{
+  font-size:18px;
+  line-height:1.45;
+  font-weight:760;
+  color:#fff;
+}
+.generated{
+  display:inline-block;
+  margin-left:4px;
+  color:var(--green);
+  text-shadow:0 0 18px rgba(100,244,172,.4);
+}
+.tokenList{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.token{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:31px;
+  padding:7px 10px;
+  border-radius:12px;
+  background:rgba(110,168,255,.12);
+  border:1px solid rgba(110,168,255,.25);
+  color:#eaf2ff;
+  font-weight:700;
+  font-size:13px;
+  animation: tokenIn .45s ease both;
+}
+.token.pred{
+  background:rgba(100,244,172,.14);
+  border-color:rgba(100,244,172,.5);
+  color:#dffff0;
+  box-shadow:0 0 22px rgba(100,244,172,.16);
+}
+.token.focus{
+  background:rgba(255,209,102,.16);
+  border-color:rgba(255,209,102,.55);
+  color:#fff4cf;
+}
+@keyframes tokenIn{from{opacity:0; transform:translateY(10px) scale(.96)}to{opacity:1; transform:none}}
+
+.idTable{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  color:#dce8ff;
+}
+.idTable td{
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:6px 4px;
+}
+.idTable td:last-child{
+  text-align:right; color:var(--cyan); font-weight:800;
+}
+.miniMatrix{
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  gap:3px;
+  margin-top:10px;
+}
+.cell{
+  height:13px;
+  border-radius:4px;
+  background:rgba(110,168,255,.12);
+}
+.cell.hot{
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  box-shadow:0 0 12px rgba(56,217,255,.25);
+  animation:pulse .9s ease-in-out infinite alternate;
+}
+@keyframes pulse{from{opacity:.58}to{opacity:1}}
+
+.scene{
+  min-height:730px;
+  border-radius:28px;
+  background:
+    linear-gradient(180deg, rgba(16,24,45,.88), rgba(11,16,32,.92)),
+    radial-gradient(circle at 20% 20%, rgba(56,217,255,.12), transparent 25%),
+    radial-gradient(circle at 75% 60%, rgba(167,139,250,.14), transparent 30%);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+  padding:20px;
+}
+.scene:after{
+  content:"";
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+  background-size:34px 34px;
+  mask-image:linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+  pointer-events:none;
+}
+.sceneTop{
+  position:relative; z-index:2;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+  margin-bottom:18px;
+}
+.stageTitle{
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:-.04em;
+  margin:0 0 6px;
+}
+.stageSub{
+  color:var(--muted);
+  line-height:1.45;
+  max-width:820px;
+  margin:0;
+}
+.cycleBadge{
+  padding:9px 12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.1);
+  color:#dfeaff;
+  font-weight:800;
+  font-size:13px;
+  white-space:nowrap;
+}
+.canvas{
+  position:relative; z-index:2;
+  min-height:590px;
+  border-radius:24px;
+  background:rgba(5,9,19,.32);
+  border:1px solid rgba(255,255,255,.07);
+  overflow:hidden;
+  padding:18px;
+}
+.explain{
+  margin-top:14px;
+  padding:16px 18px;
+  border-radius:22px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.09);
+  color:#dbe9ff;
+  line-height:1.52;
+}
+.formula{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  color:#dcf7ff;
+  background:rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:12px 14px;
+  display:inline-block;
+}
+.bigFlow{
+  display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; min-height:360px;
+}
+.flowCard{
+  width:155px;
+  min-height:116px;
+  border-radius:20px;
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
+  border:1px solid rgba(255,255,255,.12);
+  padding:14px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+  animation:cardIn .55s ease both;
+}
+.flowCard.large{width:230px; min-height:150px}
+.flowCard.wide{width:330px}
+.flowCard h4{margin:0 0 8px; font-size:14px}
+.flowCard p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.arrow{
+  width:46px; height:2px; background:linear-gradient(90deg,var(--cyan),var(--purple));
+  position:relative;
+  box-shadow:0 0 15px rgba(56,217,255,.35);
+}
+.arrow:after{
+  content:"";
+  position:absolute; right:-2px; top:-5px;
+  border-left:10px solid var(--purple);
+  border-top:6px solid transparent;
+  border-bottom:6px solid transparent;
+}
+@keyframes cardIn{from{opacity:0; transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+
+.rainbowScan{
+  position:absolute; left:-30%; top:0; height:100%; width:28%;
+  background:linear-gradient(90deg, transparent, rgba(56,217,255,.16), rgba(167,139,250,.16), transparent);
+  animation:scan 2.4s linear infinite;
+  pointer-events:none;
+}
+@keyframes scan{to{left:102%}}
+
+.headGrid{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(135px, 1fr));
+  gap:14px;
+  margin-top:12px;
+}
+.head{
+  min-height:188px;
+  border-radius:20px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.11);
+  padding:13px;
+  animation:headPulse 1.1s ease-in-out infinite alternate;
+}
+.head:nth-child(2){animation-delay:.12s}
+.head:nth-child(3){animation-delay:.24s}
+.head:nth-child(4){animation-delay:.36s}
+@keyframes headPulse{from{box-shadow:0 0 0 rgba(56,217,255,0)}to{box-shadow:0 0 28px rgba(56,217,255,.13)}}
+.head h4{margin:0 0 10px; display:flex; align-items:center; justify-content:space-between}
+.headTag{
+  color:#00101a;
+  background:var(--cyan);
+  border-radius:999px;
+  padding:4px 7px;
+  font-size:11px;
+  font-weight:900;
+}
+.matrixTable{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  margin-top:12px;
+}
+.matrixTable td,.matrixTable th{
+  border:1px solid rgba(255,255,255,.08);
+  padding:8px;
+  text-align:center;
+}
+.matrixTable th{
+  color:#bcd3ff;
+  font-size:11px;
+  font-weight:800;
+  background:rgba(255,255,255,.06);
+}
+.matrixTable td{
+  background:rgba(110,168,255,.08);
+  transition:.25s ease;
+}
+.matrixTable td.hot{
+  background:rgba(255,209,102,.2);
+  color:#fff2c7;
+  box-shadow:inset 0 0 22px rgba(255,209,102,.12);
+}
+.matrixTable td.green{
+  background:rgba(100,244,172,.17);
+  color:#dcffe9;
+}
+.vectorBars{
+  display:flex;
+  gap:5px;
+  align-items:end;
+  height:88px;
+  justify-content:center;
+}
+.bar{
+  width:10px;
+  border-radius:8px 8px 3px 3px;
+  background:linear-gradient(180deg,var(--cyan),var(--blue));
+  animation:barDance .8s ease-in-out infinite alternate;
+}
+.bar:nth-child(2n){background:linear-gradient(180deg,var(--purple),var(--pink));animation-delay:.12s}
+.bar:nth-child(3n){background:linear-gradient(180deg,var(--green),var(--cyan));animation-delay:.25s}
+@keyframes barDance{from{transform:scaleY(.85); filter:brightness(.85)}to{transform:scaleY(1.05); filter:brightness(1.2)}}
+
+.qkvWrap{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:14px;
+  margin-top:22px;
+}
+.qkv{
+  border-radius:20px;
+  padding:17px;
+  text-align:center;
+  min-height:170px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.1);
+  position:relative;
+}
+.qkv h3{
+  margin:0 0 10px;
+  font-size:38px;
+  letter-spacing:-.06em;
+}
+.qkv.query h3{color:var(--cyan)}
+.qkv.key h3{color:var(--yellow)}
+.qkv.value h3{color:var(--green)}
+.qkv p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+.neural{
+  width:100%;
+  height:250px;
+  position:relative;
+  margin:10px auto 0;
+}
+.neural svg{width:100%;height:100%;overflow:visible}
+.node{
+  fill:rgba(56,217,255,.22);
+  stroke:rgba(56,217,255,.8);
+  stroke-width:1.5;
+  filter:drop-shadow(0 0 8px rgba(56,217,255,.35));
+}
+.node.active{fill:rgba(100,244,172,.35); stroke:rgba(100,244,172,.95)}
+.link{
+  stroke:rgba(159,178,216,.23);
+  stroke-width:1;
+}
+.link.active{
+  stroke:rgba(56,217,255,.8);
+  stroke-width:2;
+  stroke-dasharray:7 7;
+  animation:dash 1s linear infinite;
+}
+@keyframes dash{to{stroke-dashoffset:-28}}
+.ffnDims{
+  display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;flex-wrap:wrap;
+}
+.dim{
+  padding:13px 16px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  font-weight:900;color:#fff;
+}
+.dim.big{
+  padding:18px 24px;
+  color:#001019;
+  background:linear-gradient(135deg,var(--yellow),var(--orange));
+}
+.plusNorm{
+  display:grid;
+  grid-template-columns:1fr 58px 1fr 70px 1fr;
+  align-items:center;gap:10px;margin-top:32px;
+}
+.symbol{
+  width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);
+  font-size:24px;font-weight:950;color:var(--cyan);
+}
+.symbol.norm{
+  font-size:13px;color:#001019;background:linear-gradient(135deg,var(--green),var(--cyan));
+}
+.layerStack{
+  display:flex;align-items:end;justify-content:center;gap:11px;margin-top:24px;height:280px;
+}
+.layerBlock{
+  width:74px;
+  border-radius:15px 15px 9px 9px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(180deg, rgba(110,168,255,.20), rgba(167,139,250,.10));
+  display:flex;align-items:center;justify-content:center;
+  color:#e8efff;font-weight:900;
+  transition:.25s;
+}
+.layerBlock.hot{
+  background:linear-gradient(180deg, rgba(56,217,255,.75), rgba(167,139,250,.55));
+  color:#04111a;
+  box-shadow:0 0 32px rgba(56,217,255,.30);
+  animation: layerGlow 1s ease-in-out infinite alternate;
+}
+@keyframes layerGlow{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+.logitBars{
+  display:grid;
+  gap:10px;
+  margin:18px auto 0;
+  width:min(650px, 100%);
+}
+.logitRow{
+  display:grid;
+  grid-template-columns:90px 1fr 74px;
+  gap:10px;
+  align-items:center;
+  font-size:13px;
+}
+.logitLabel{font-weight:900;color:#eaf2ff}
+.logitTrack{
+  height:26px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:999px;
+  overflow:hidden;
+}
+.logitFill{
+  height:100%;
+  width:0;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  border-radius:999px;
+  transition:width .9s cubic-bezier(.22,1,.36,1);
+}
+.logitRow.top .logitFill{background:linear-gradient(90deg,var(--green),var(--cyan));box-shadow:0 0 18px rgba(100,244,172,.2)}
+.logitVal{text-align:right;color:var(--muted);font-weight:800}
+.predictedToken{
+  display:inline-flex;
+  margin-top:24px;
+  align-items:center;
+  justify-content:center;
+  min-width:155px;
+  min-height:72px;
+  padding:16px 24px;
+  border-radius:24px;
+  background:linear-gradient(135deg, rgba(100,244,172,.25), rgba(56,217,255,.14));
+  border:1px solid rgba(100,244,172,.55);
+  font-size:32px;
+  font-weight:950;
+  color:#eafff3;
+  box-shadow:0 0 42px rgba(100,244,172,.18);
+  animation:pop .7s cubic-bezier(.18,1.25,.4,1) both;
+}
+@keyframes pop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:scale(1)}}
+.outputHistory{
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+.timeline{
+  display:grid; gap:8px; margin-top:10px;
+}
+.tlineItem{
+  display:flex; gap:8px; align-items:flex-start; color:var(--muted); font-size:13px;
+}
+.tlineItem.active{color:#fff}
+.tlineDot{
+  min-width:10px;width:10px;height:10px;border-radius:50%;
+  background:rgba(255,255,255,.18);margin-top:5px;
+}
+.tlineItem.active .tlineDot{background:var(--cyan);box-shadow:0 0 14px var(--cyan)}
+.legend{
+  margin-top:16px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+.warn{
+  color:#ffe3aa;
+  background:rgba(255,209,102,.08);
+  border:1px solid rgba(255,209,102,.18);
+  padding:10px 12px;
+  border-radius:14px;
+  margin-top:12px;
+}
+
+/* --- FIX STEP MULTI-HEAD + MODAL VISTA RETE --- */
+.actionBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border-radius:999px;
+  min-height:46px;
+}
+.actionBadge:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 34px rgba(56,217,255,.18), var(--shadow);
+}
+.headGrid{
+  grid-template-columns:repeat(2, minmax(260px, 1fr)) !important;
+  gap:14px !important;
+}
+@media (max-width: 760px){
+  .headGrid{grid-template-columns:1fr !important;}
+}
+.head{
+  min-height:235px !important;
+  overflow:hidden;
+}
+.headMini{
+  display:grid;
+  grid-template-columns: 1fr 92px;
+  gap:10px;
+  align-items:start;
+}
+.headTokens{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:8px;
+}
+.headChip{
+  font-size:10px;
+  max-width:86px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  padding:5px 7px;
+  border-radius:999px;
+  color:#dceaff;
+  background:rgba(110,168,255,.12);
+  border:1px solid rgba(110,168,255,.20);
+}
+.heatGrid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:4px;
+  padding:8px;
+  border-radius:14px;
+  background:rgba(0,0,0,.16);
+  border:1px solid rgba(255,255,255,.08);
+}
+.heatCell{
+  min-height:28px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.06);
+  display:grid;
+  place-items:center;
+  font-size:10px;
+  font-weight:900;
+  color:#ecf7ff;
+}
+.headSpark{
+  min-height:100%;
+  border-radius:15px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(56,217,255,.22), transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(167,139,250,.18), transparent 45%),
+    rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.08);
+  display:grid;
+  place-items:center;
+  padding:10px;
+}
+.headSpark svg{
+  width:78px;
+  height:90px;
+}
+.headCaption{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+.headCaption strong{color:#eaf2ff}
+.networkOverlay{
+  position:fixed;
+  inset:0;
+  z-index:999;
+  background:rgba(3,7,18,.78);
+  backdrop-filter:blur(14px);
+  display:none;
+  padding:22px;
+  overflow:auto;
+}
+.networkOverlay.open{display:block;}
+.networkShell{
+  width:min(1480px, 98vw);
+  margin:0 auto;
+  min-height:calc(100vh - 44px);
+  border-radius:30px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(56,217,255,.18), transparent 30%),
+    radial-gradient(circle at 85% 18%, rgba(167,139,250,.18), transparent 28%),
+    linear-gradient(180deg, rgba(14,22,42,.98), rgba(7,11,22,.98));
+  border:1px solid rgba(255,255,255,.11);
+  box-shadow:0 30px 90px rgba(0,0,0,.58);
+  padding:20px;
+}
+.networkTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:12px;
+}
+.networkTop h2{
+  margin:0;
+  font-size:clamp(24px, 3vw, 40px);
+  letter-spacing:-.04em;
+}
+.networkTop p{
+  margin:6px 0 0;
+  color:var(--muted);
+  line-height:1.45;
+}
+.closeNetwork{
+  width:46px;
+  height:46px;
+  border-radius:16px;
+  font-size:18px;
+  background:rgba(255,255,255,.07);
+}
+.networkControls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:12px;
+  border-radius:20px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.08);
+  margin-bottom:14px;
+}
+.networkControls .left,.networkControls .right{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.networkProgress{
+  height:10px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.08);
+  margin-bottom:16px;
+}
+#networkProgressFill{
+  height:100%;
+  width:0%;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--green),var(--cyan),var(--purple));
+  transition:width .35s ease;
+}
+.networkStageCard{
+  display:grid;
+  grid-template-columns:minmax(260px, 390px) 1fr;
+  gap:16px;
+}
+@media (max-width: 980px){
+  .networkStageCard{grid-template-columns:1fr;}
+}
+.networkInfo{
+  border-radius:24px;
+  padding:18px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.09);
+}
+.networkInfo h3{
+  margin:0 0 8px;
+  font-size:22px;
+}
+.networkInfo p{
+  color:var(--muted);
+  line-height:1.5;
+}
+.genContextBox{
+  margin-top:14px;
+  padding:14px;
+  border-radius:18px;
+  background:rgba(0,0,0,.22);
+  border:1px solid rgba(255,255,255,.08);
+}
+.genContextBox .label{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-bottom:8px;
+}
+.genContextText{
+  font-size:20px;
+  line-height:1.42;
+  font-weight:900;
+}
+.genContextText .fresh{
+  color:var(--green);
+  text-shadow:0 0 18px rgba(100,244,172,.42);
+}
+.tokenBeingGenerated{
+  display:inline-flex;
+  margin-top:12px;
+  min-width:120px;
+  min-height:54px;
+  align-items:center;
+  justify-content:center;
+  padding:12px 18px;
+  border-radius:18px;
+  background:linear-gradient(135deg, rgba(100,244,172,.25), rgba(56,217,255,.12));
+  border:1px solid rgba(100,244,172,.45);
+  font-size:24px;
+  font-weight:950;
+}
+.networkCanvasBox{
+  position:relative;
+  min-height:660px;
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(56,217,255,.12), transparent 30%),
+    radial-gradient(circle at 70% 60%, rgba(167,139,250,.12), transparent 32%),
+    rgba(5,9,19,.35);
+  border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+}
+.networkCanvasBox:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size:32px 32px;
+  pointer-events:none;
+}
+#networkSvg{
+  position:relative;
+  z-index:2;
+  width:100%;
+  height:660px;
+  display:block;
+}
+.netLabel{
+  fill:#dce8ff;
+  font-size:13px;
+  font-weight:800;
+}
+.netTiny{
+  fill:#9fb2d8;
+  font-size:11px;
+  font-weight:650;
+}
+.netNode{
+  fill:rgba(56,217,255,.16);
+  stroke:rgba(110,168,255,.5);
+  stroke-width:1.4;
+  filter:drop-shadow(0 0 7px rgba(56,217,255,.15));
+  transition:.25s ease;
+}
+.netNode.done{
+  fill:rgba(110,168,255,.25);
+  stroke:rgba(110,168,255,.55);
+}
+.netNode.active{
+  fill:rgba(100,244,172,.36);
+  stroke:rgba(100,244,172,1);
+  stroke-width:2.2;
+  filter:drop-shadow(0 0 13px rgba(100,244,172,.75));
+  animation:netPulse .65s ease-in-out infinite alternate;
+}
+@keyframes netPulse{
+  from{filter:drop-shadow(0 0 5px rgba(100,244,172,.42));}
+  to{filter:drop-shadow(0 0 18px rgba(100,244,172,.92));}
+}
+.netRect{
+  fill:rgba(255,255,255,.045);
+  stroke:rgba(255,255,255,.11);
+  stroke-width:1.1;
+}
+.netRect.active{
+  fill:rgba(100,244,172,.13);
+  stroke:rgba(100,244,172,.8);
+}
+.netLink{
+  stroke:rgba(159,178,216,.23);
+  stroke-width:1.3;
+}
+.netLink.done{
+  stroke:rgba(110,168,255,.42);
+}
+.netLink.active{
+  stroke:rgba(56,217,255,.95);
+  stroke-width:2.2;
+  stroke-dasharray:8 8;
+  animation:netDash .75s linear infinite;
+  filter:drop-shadow(0 0 8px rgba(56,217,255,.45));
+}
+@keyframes netDash{to{stroke-dashoffset:-32}}
+.netOutputToken{
+  fill:rgba(100,244,172,.22);
+  stroke:rgba(100,244,172,.9);
+  stroke-width:2.1;
+  filter:drop-shadow(0 0 18px rgba(100,244,172,.35));
+}
+.networkLegend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:14px;
+  color:var(--muted);
+  font-size:12px;
+}
+.legendPill{
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  padding:8px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+}
+.legendDot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:var(--cyan);
+}
+.legendDot.active{background:var(--green);box-shadow:0 0 12px var(--green)}
+.legendDot.done{background:var(--blue)}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">
+      <h1>Dentro un LLM: dal token alla generazione</h1>
+      <p>Animazione didattica del flusso: tokenizer → embedding → Transformer → logits → prossimo token → ciclo autoregressivo.</p>
+    </div>
+    <button id="openNetworkBtn" class="badge actionBadge" type="button">🧠 Vista generazione nodo-per-nodo</button>
+  </div>
+
+  <div class="controls">
+    <div class="control-left">
+      <button id="playBtn">▶ Play</button>
+      <button id="prevBtn" class="secondary">← Step</button>
+      <button id="nextBtn" class="secondary">Step →</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+    <div class="control-right">
+      <label>Velocità <input id="speed" type="range" min="600" max="4200" step="100" value="2100"></label>
+      <div class="kv">Ciclo: <strong id="cycleNum">1/3</strong></div>
+      <div class="kv">Fase: <strong id="stageNum">1</strong></div>
+    </div>
+  </div>
+  <div class="progressWrap"><div id="progressFill"></div></div>
+
+  <div class="layout">
+    <aside>
+      <div id="inputPanel" class="panel">
+        <h3><span class="dot"></span>Contesto corrente</h3>
+        <div id="contextText" class="contextText"></div>
+        <small>Il modello vede una sequenza che cresce token dopo token.</small>
+      </div>
+
+      <div id="tokenizerPanel" class="panel">
+        <h3><span class="dot purple"></span>Tokenizer</h3>
+        <small>La frase viene spezzata in token appartenenti al vocabolario del modello.</small>
+        <div id="tokenList" class="tokenList"></div>
+      </div>
+
+      <div id="matrixPanel" class="panel">
+        <h3><span class="dot green"></span>ID → Embedding Matrix</h3>
+        <small>Ogni token diventa un ID. L'ID seleziona una riga della matrice degli embedding.</small>
+        <div id="idTableWrap"></div>
+        <div id="miniMatrix" class="miniMatrix"></div>
+      </div>
+
+      <div id="positionPanel" class="panel">
+        <h3><span class="dot yellow"></span>Posizione</h3>
+        <small>Agli embedding si aggiunge informazione posizionale: il modello deve sapere l'ordine dei token.</small>
+        <div id="positionTokens" class="tokenList"></div>
+      </div>
+    </aside>
+
+    <main class="scene">
+      <div class="sceneTop">
+        <div>
+          <h2 id="stageTitle" class="stageTitle"></h2>
+          <p id="stageSub" class="stageSub"></p>
+        </div>
+        <div id="cycleBadge" class="cycleBadge"></div>
+      </div>
+      <div id="canvas" class="canvas"></div>
+      <div id="explain" class="explain"></div>
+    </main>
+
+    <aside>
+      <div id="transformerPanel" class="panel">
+        <h3><span class="dot orange"></span>Transformer Stack</h3>
+        <small>Più blocchi Transformer ripetono self-attention, residual, normalizzazione e FFN.</small>
+        <div class="timeline" id="stageTimeline"></div>
+      </div>
+
+      <div id="outputPanel" class="panel">
+        <h3><span class="dot green"></span>Output generato</h3>
+        <div id="outputHistory" class="outputHistory"></div>
+        <small>Ogni nuovo token viene aggiunto al contesto e usato per prevedere il successivo.</small>
+      </div>
+
+      <div id="logitsPanel" class="panel">
+        <h3><span class="dot"></span>Logits e probabilità</h3>
+        <small>Il vettore finale viene proiettato sul vocabolario. I logits diventano probabilità tramite softmax.</small>
+        <div id="smallLogits"></div>
+      </div>
+
+      <div class="panel">
+        <h3><span class="dot yellow"></span>Nota didattica</h3>
+        <small>Le dimensioni mostrate, i numeri e le probabilità sono esempi. Nei modelli reali i vettori hanno migliaia di dimensioni, il vocabolario può avere decine/centinaia di migliaia di token e lo stack può includere molti layer.</small>
+      </div>
+    </aside>
+  </div>
+</div>
+
+
+<div id="networkOverlay" class="networkOverlay" aria-hidden="true">
+  <div class="networkShell">
+    <div class="networkTop">
+      <div>
+        <h2>Vista generazione: la rete si accende token dopo token</h2>
+        <p>Questa vista mostra il flusso come una rete: i nodi si colorano in sequenza mentre il modello attraversa tokenizer, embedding, attenzione, FFN, layer, logits e output.</p>
+      </div>
+      <button id="closeNetworkBtn" class="closeNetwork" type="button">✕</button>
+    </div>
+
+    <div class="networkControls">
+      <div class="left">
+        <button id="networkPlayBtn" type="button">▶ Avvia</button>
+        <button id="networkPrevBtn" class="secondary" type="button">← Step</button>
+        <button id="networkNextBtn" class="secondary" type="button">Step →</button>
+        <button id="networkResetBtn" class="secondary" type="button">Reset</button>
+      </div>
+      <div class="right">
+        <label>Velocità scena <input id="networkSpeed" type="range" min="350" max="2600" step="50" value="1050"></label>
+        <div class="kv">Token target: <strong id="networkTargetToken">Roma</strong></div>
+        <div class="kv">Fase rete: <strong id="networkStepLabel">1</strong></div>
+      </div>
+    </div>
+
+    <div class="networkProgress"><div id="networkProgressFill"></div></div>
+
+    <div class="networkStageCard">
+      <div class="networkInfo">
+        <h3 id="networkPhaseTitle">Token in ingresso</h3>
+        <p id="networkPhaseDesc">La sequenza corrente entra nel modello.</p>
+        <div class="genContextBox">
+          <div class="label">Contesto corrente</div>
+          <div id="networkContext" class="genContextText"></div>
+          <div id="networkGeneratedToken" class="tokenBeingGenerated">Roma</div>
+        </div>
+        <div class="networkLegend">
+          <span class="legendPill"><span class="legendDot done"></span>già attraversato</span>
+          <span class="legendPill"><span class="legendDot active"></span>fase attiva</span>
+          <span class="legendPill"><span class="legendDot"></span>fase successiva</span>
+        </div>
+      </div>
+
+      <div class="networkCanvasBox">
+        <svg id="networkSvg" viewBox="0 0 1180 660" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const baseTokens = ["Qual", " è", " la", " capitale", " dell'", "Italia", "?"];
+const ids = {
+  "Qual": 15782, " è": 374, " la": 41, " capitale": 8912, " dell'": 622, "Italia": 2175, "?": 30,
+  " Roma": 10894, ".": 13, "<EOS>": 2
+};
+
+const cycles = [
+  {
+    n: 1,
+    tokens: baseTokens,
+    predicted: " Roma",
+    focus: "?",
+    candidates: [
+      [" Roma", 12.4, 0.89],
+      [" Milano", 8.1, 0.04],
+      [" Napoli", 7.2, 0.02],
+      [" Torino", 5.9, 0.01],
+      [" Parigi", 3.2, 0.004]
+    ],
+    note: "Il modello deve scegliere il primo token della risposta."
+  },
+  {
+    n: 2,
+    tokens: [...baseTokens, " Roma"],
+    predicted: ".",
+    focus: " Roma",
+    candidates: [
+      [".", 11.9, 0.83],
+      [",", 8.6, 0.07],
+      [" è", 7.8, 0.05],
+      ["\n", 5.4, 0.02],
+      [" capitale", 3.7, 0.004]
+    ],
+    note: "Dopo aver generato “Roma”, il modello prevede come continuare."
+  },
+  {
+    n: 3,
+    tokens: [...baseTokens, " Roma", "."],
+    predicted: "<EOS>",
+    focus: ".",
+    candidates: [
+      ["<EOS>", 10.7, 0.76],
+      ["\n", 8.8, 0.13],
+      [" La", 7.7, 0.07],
+      [" Roma", 4.0, 0.01],
+      [" Capitale", 2.2, 0.002]
+    ],
+    note: "Il token di fine sequenza chiude la generazione."
+  }
+];
+
+const stages = [
+  {
+    id:"input",
+    title:"1. Input testuale",
+    sub:"La frase entra come testo naturale. Il modello non la può ancora elaborare: deve trasformarla in numeri.",
+    active:["inputPanel"],
+    explain:"L'utente scrive una frase. Da qui inizia il percorso: ogni fase traduce, arricchisce o trasforma l'informazione fino alla previsione del prossimo token."
+  },
+  {
+    id:"tokenizer",
+    title:"2. Tokenizzazione",
+    sub:"Il tokenizer spezza il testo in token: unità linguistiche compatibili con il vocabolario del modello.",
+    active:["tokenizerPanel"],
+    explain:"I token non sono necessariamente parole intere: possono essere parole, sottoparole, spazi o punteggiatura. Il modello lavora su questa sequenza discreta."
+  },
+  {
+    id:"ids",
+    title:"3. Token → ID",
+    sub:"Ogni token riceve un ID numerico. L'ID non ha significato: è un indice.",
+    active:["tokenizerPanel","matrixPanel"],
+    explain:"L'ID serve solo a indicare quale riga della Embedding Matrix deve essere recuperata."
+  },
+  {
+    id:"embedding",
+    title:"4. Embedding Matrix",
+    sub:"Ogni ID seleziona una riga della matrice: nasce il vettore del token.",
+    active:["matrixPanel"],
+    explain:"La matrice degli embedding è un parametro appreso durante il training. Contiene una rappresentazione numerica iniziale per ciascun token del vocabolario."
+  },
+  {
+    id:"position",
+    title:"5. Informazione posizionale",
+    sub:"Agli embedding viene aggiunta l'informazione sulla posizione dei token nella frase.",
+    active:["positionPanel"],
+    explain:"Senza posizione, il modello saprebbe quali token sono presenti, ma non in quale ordine. L'ordine è essenziale per il significato."
+  },
+  {
+    id:"transformerIn",
+    title:"6. Ingresso nello stack Transformer",
+    sub:"Gli embedding arricchiti dalla posizione entrano nel primo blocco Transformer.",
+    active:["transformerPanel"],
+    explain:"Ogni blocco Transformer ripete due operazioni principali: comunicazione tra token tramite self-attention e trasformazione individuale tramite FFN."
+  },
+  {
+    id:"multihead",
+    title:"7. Multi-Head Self-Attention",
+    sub:"Più teste lavorano in parallelo: ciascuna osserva relazioni diverse tra i token.",
+    active:["transformerPanel"],
+    explain:"Le teste non sono layer successivi. Sono canali paralleli di attenzione dentro lo stesso layer. I loro risultati vengono poi concatenati e proiettati."
+  },
+  {
+    id:"qkv",
+    title:"8. Query, Key, Value",
+    sub:"Per ogni token il layer calcola tre vettori: Query, Key e Value.",
+    active:["transformerPanel"],
+    explain:"Query = cosa sto cercando. Key = cosa offro agli altri. Value = quale informazione porto se qualcuno mi presta attenzione."
+  },
+  {
+    id:"scores",
+    title:"9. Score Matrix: Q × Kᵀ",
+    sub:"Ogni token confronta la propria Query con le Key di tutti gli altri token.",
+    active:["transformerPanel"],
+    explain:"Il prodotto scalare Q×Kᵀ produce punteggi non normalizzati: sono gli score di attenzione."
+  },
+  {
+    id:"softmaxAtt",
+    title:"10. Softmax sugli score",
+    sub:"Gli score vengono normalizzati: ogni riga diventa una distribuzione la cui somma è 1.",
+    active:["transformerPanel"],
+    explain:"Dopo la softmax otteniamo la vera matrice di attenzione: quanto ogni token deve guardare gli altri token."
+  },
+  {
+    id:"attnV",
+    title:"11. Attention Matrix × V",
+    sub:"I pesi di attenzione vengono applicati ai Value per produrre embedding contestualizzati.",
+    active:["transformerPanel"],
+    explain:"Ogni nuovo embedding è una combinazione pesata dei Value degli altri token. Qui il token acquisisce contesto."
+  },
+  {
+    id:"residual1",
+    title:"12. Residual + Normalizzazione",
+    sub:"Il risultato della self-attention viene sommato all'input originale e normalizzato.",
+    active:["transformerPanel"],
+    explain:"La residual connection conserva l'informazione precedente. La normalizzazione stabilizza i valori e rende il flusso più robusto."
+  },
+  {
+    id:"ffn",
+    title:"13. Feed Forward Network",
+    sub:"Ogni embedding, ormai contestualizzato, viene trasformato individualmente.",
+    active:["transformerPanel"],
+    explain:"La FFN non fa comunicare i token: lavora token per token. Proietta il vettore in uno spazio più grande, applica una funzione di attivazione e torna alla dimensione originale."
+  },
+  {
+    id:"residual2",
+    title:"14. Residual + Normalizzazione finale del layer",
+    sub:"Anche dopo la FFN si aggiungono residuo e normalizzazione.",
+    active:["transformerPanel"],
+    explain:"L'output del layer è una nuova sequenza di embedding, più contestualizzati e più utili per la previsione."
+  },
+  {
+    id:"stack",
+    title:"15. Ripetizione sui layer successivi",
+    sub:"Il layer successivo riceve questi nuovi embedding e ricalcola nuove Q, K e V.",
+    active:["transformerPanel"],
+    explain:"Questo processo viene ripetuto molte volte. Ogni layer raffina la rappresentazione del contesto."
+  },
+  {
+    id:"finalVector",
+    title:"16. Vettore finale",
+    sub:"Dall'ultimo layer otteniamo il vettore contestuale dell'ultima posizione.",
+    active:["transformerPanel"],
+    explain:"Questo vettore non è una parola: è una rappresentazione matematica del contesto corrente, usata per prevedere il prossimo token."
+  },
+  {
+    id:"projection",
+    title:"17. Proiezione sul vocabolario",
+    sub:"Il vettore finale viene moltiplicato per la matrice di output, spesso la Embedding Matrix trasposta.",
+    active:["matrixPanel","logitsPanel"],
+    explain:"Con il weight tying, lo stesso spazio usato per leggere i token viene riutilizzato per decidere quale token scrivere."
+  },
+  {
+    id:"logits",
+    title:"18. Logits",
+    sub:"La proiezione produce un valore non normalizzato per ogni token del vocabolario.",
+    active:["logitsPanel"],
+    explain:"Se il vocabolario ha 128.000 token, il modello produce 128.000 logits: uno per ogni possibile continuazione."
+  },
+  {
+    id:"softmaxOut",
+    title:"19. Softmax di output",
+    sub:"I logits vengono trasformati in probabilità.",
+    active:["logitsPanel"],
+    explain:"La softmax finale produce una distribuzione probabilistica sui token candidati."
+  },
+  {
+    id:"select",
+    title:"20. Scelta del prossimo token",
+    sub:"Il sistema seleziona un token secondo le regole di decoding.",
+    active:["outputPanel","logitsPanel"],
+    explain:"Può scegliere il più probabile oppure campionare tra i candidati, in base a temperatura, top-k, top-p e altri parametri."
+  },
+  {
+    id:"loop",
+    title:"21. Append e ciclo autoregressivo",
+    sub:"Il token generato viene aggiunto al contesto. Il modello riparte per prevedere il successivo.",
+    active:["inputPanel","outputPanel"],
+    explain:"Un LLM genera testo un token alla volta. La risposta completa emerge dalla ripetizione del ciclo di previsione."
+  }
+];
+
+let step = 0;
+let playing = false;
+let timer = null;
+
+const $ = (id)=>document.getElementById(id);
+
+function escapeHtml(s){
+  return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+}
+
+function current(){
+  const stageIdx = step % stages.length;
+  const cycleIdx = Math.floor(step / stages.length);
+  return {stage: stages[stageIdx], stageIdx, cycle: cycles[cycleIdx], cycleIdx};
+}
+
+function contextString(cycle){
+  return cycle.tokens.join("");
+}
+
+function generatedSoFar(cycleIdx){
+  const outs = [];
+  for(let i=0;i<cycleIdx;i++){
+    if(cycles[i].predicted !== "<EOS>") outs.push(cycles[i].predicted);
+  }
+  return outs;
+}
+
+function renderSide(){
+  const {stage, stageIdx, cycle, cycleIdx} = current();
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  stage.active.forEach(id => $(id)?.classList.add("active"));
+
+  const gen = generatedSoFar(cycleIdx).join("");
+  $("contextText").innerHTML = escapeHtml(baseTokens.join("")) + `<span class="generated">${escapeHtml(gen)}</span>`;
+  $("cycleNum").textContent = `${cycleIdx+1}/${cycles.length}`;
+  $("stageNum").textContent = `${stageIdx+1}/${stages.length}`;
+  $("cycleBadge").textContent = `Ciclo ${cycleIdx+1}: previsione di ${cycle.predicted === "<EOS>" ? "fine sequenza" : "“"+cycle.predicted.trim()+"”"}`;
+  $("progressFill").style.width = `${(step)/((cycles.length*stages.length)-1)*100}%`;
+
+  $("tokenList").innerHTML = cycle.tokens.map((t,i)=>`<span class="token ${t===cycle.focus?'focus':''}" style="animation-delay:${i*45}ms">${escapeHtml(t)}</span>`).join("");
+  const rows = cycle.tokens.map(t=>`<tr><td>${escapeHtml(t)}</td><td>${ids[t] ?? Math.floor(1000+Math.random()*9000)}</td></tr>`).join("");
+  $("idTableWrap").innerHTML = `<table class="idTable">${rows}</table>`;
+  $("miniMatrix").innerHTML = Array.from({length:56}, (_,i)=>`<span class="cell ${(i%8===2 || i%13===0)?'hot':''}"></span>`).join("");
+  $("positionTokens").innerHTML = cycle.tokens.map((t,i)=>`<span class="token">pos ${i+1}</span>`).join("");
+
+  const hist = generatedSoFar(cycleIdx).map(t=>`<span class="token pred">${escapeHtml(t)}</span>`).join("");
+  $("outputHistory").innerHTML = hist || `<small style="color:var(--muted)">Nessun token ancora generato.</small>`;
+
+  renderTimeline(stageIdx);
+  renderSmallLogits(cycle, stage.id);
+}
+
+function renderTimeline(activeIdx){
+  $("stageTimeline").innerHTML = stages.map((s,i)=>`
+    <div class="tlineItem ${i===activeIdx?'active':''}">
+      <span class="tlineDot"></span>
+      <span>${i+1}. ${s.title.replace(/^\d+\.\s*/,'')}</span>
+    </div>`).join("");
+}
+
+function renderSmallLogits(cycle, id){
+  const visible = ["projection","logits","softmaxOut","select"].includes(id);
+  if(!visible){
+    $("smallLogits").innerHTML = `<small style="color:var(--muted)">I logits compariranno dopo la proiezione finale sul vocabolario.</small>`;
+    return;
+  }
+  $("smallLogits").innerHTML = cycle.candidates.slice(0,4).map((c,i)=>{
+    const pct = id==="logits" || id==="projection" ? Math.min(100, (c[1]/13)*100) : c[2]*100;
+    const val = id==="logits" || id==="projection" ? c[1].toFixed(1) : (c[2]*100).toFixed(1)+"%";
+    return `<div class="logitRow ${i===0?'top':''}" style="grid-template-columns:70px 1fr 55px;margin:8px 0">
+      <div class="logitLabel">${escapeHtml(c[0])}</div>
+      <div class="logitTrack"><div class="logitFill" style="width:${pct}%"></div></div>
+      <div class="logitVal">${val}</div>
+    </div>`;
+  }).join("");
+}
+
+function wrapCanvas(html){
+  return `<div class="rainbowScan"></div>${html}`;
+}
+
+function tokensHtml(tokens, cls=""){
+  return tokens.map((t,i)=>`<span class="token ${cls}" style="animation-delay:${i*70}ms">${escapeHtml(t)}</span>`).join("");
+}
+
+function vectorBars(n=18){
+  const vals = [42,68,34,82,56,73,28,61,91,47,78,52,64,36,88,55,69,31];
+  return `<div class="vectorBars">${vals.slice(0,n).map((h,i)=>`<span class="bar" style="height:${h}px;animation-delay:${i*35}ms"></span>`).join("")}</div>`;
+}
+
+function matrixHtml(labels, normalized=false){
+  const nums = [
+    [1.2,0.4,0.7,0.3,0.2,0.5,0.2,0.9],
+    [0.3,1.7,0.9,2.1,0.4,1.3,0.1,0.2],
+    [0.2,0.6,1.1,1.9,0.8,1.5,0.3,0.4],
+    [0.5,0.8,1.3,1.6,2.8,3.4,0.6,0.7],
+    [0.1,0.3,0.7,2.4,2.1,3.9,0.4,0.2],
+    [0.4,0.8,0.6,3.1,2.9,2.2,0.5,0.6],
+    [0.2,0.3,0.3,2.7,0.8,3.6,1.1,0.9],
+    [0.8,0.5,0.6,1.1,0.5,1.3,0.9,1.4]
+  ];
+  const short = labels.slice(-Math.min(labels.length,6));
+  const rows = short.map((r,ri)=>{
+    const rowNums = nums[(ri+2)%nums.length].slice(0, short.length);
+    const sum = rowNums.reduce((a,b)=>a+Math.exp(b),0);
+    const cells = rowNums.map((v,ci)=>{
+      const hot = ci===short.length-2 || (ri===short.length-1 && ci===short.length-2);
+      let shown = normalized ? (Math.exp(v)/sum).toFixed(2) : v.toFixed(1);
+      return `<td class="${hot?'hot':''} ${normalized && hot?'green':''}">${shown}</td>`;
+    }).join("");
+    return `<tr><th>${escapeHtml(r)}</th>${cells}</tr>`;
+  }).join("");
+  const head = `<tr><th></th>${short.map(t=>`<th>${escapeHtml(t)}</th>`).join("")}</tr>`;
+  return `<table class="matrixTable">${head}${rows}</table>`;
+}
+
+
+function renderHeadCard(idx, name, cycleTokens){
+  const labels = cycleTokens.slice(-4);
+  while(labels.length < 4){ labels.unshift("∅"); }
+  const patterns = [
+    [0.10,0.18,0.62,0.10, 0.14,0.20,0.51,0.15, 0.08,0.11,0.68,0.13, 0.06,0.12,0.71,0.11],
+    [0.08,0.12,0.15,0.65, 0.05,0.10,0.19,0.66, 0.10,0.16,0.22,0.52, 0.07,0.15,0.20,0.58],
+    [0.45,0.18,0.14,0.23, 0.31,0.22,0.18,0.29, 0.26,0.24,0.22,0.28, 0.20,0.18,0.17,0.45],
+    [0.09,0.14,0.60,0.17, 0.07,0.10,0.68,0.15, 0.05,0.09,0.74,0.12, 0.04,0.08,0.77,0.11]
+  ];
+  const vals = patterns[(idx-1)%patterns.length];
+  const heat = vals.map(v=>{
+    const alpha = 0.08 + v * 0.74;
+    const border = 0.12 + v * 0.45;
+    return `<span class="heatCell" style="background:rgba(56,217,255,${alpha});border-color:rgba(100,244,172,${border})">${v.toFixed(2)}</span>`;
+  }).join("");
+  const chips = labels.map(l=>`<span class="headChip">${escapeHtml(l.trim() || "spazio")}</span>`).join("");
+  const sparkLines = Array.from({length:14}, (_,i)=>{
+    const x1 = 12 + (i%3)*18;
+    const y1 = 14 + (i%5)*13;
+    const x2 = 54 + ((i+idx)%3)*10;
+    const y2 = 12 + ((i*2+idx)%6)*12;
+    const active = i%idx===0 || (i+idx)%4===0;
+    return `<line class="${active ? "link active" : "link"}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`;
+  }).join("");
+  const sparkNodes = Array.from({length:8}, (_,i)=>{
+    const x = i<4 ? 14 + i*14 : 58 + (i-4)*5;
+    const y = i<4 ? 18 + (i%4)*17 : 18 + (i%4)*17;
+    return `<circle class="node ${i===idx || i===idx+3 ? "active" : ""}" cx="${x}" cy="${y}" r="4.5" />`;
+  }).join("");
+  return `
+    <div class="head">
+      <h4>Head ${idx}<span class="headTag">PAR</span></h4>
+      <div class="headMini">
+        <div>
+          <div class="headTokens">${chips}</div>
+          <div class="heatGrid">${heat}</div>
+        </div>
+        <div class="headSpark">
+          <svg viewBox="0 0 90 100">${sparkLines}${sparkNodes}</svg>
+        </div>
+      </div>
+      <div class="headCaption"><strong>${name}</strong><br>Mini-matrice normalizzata: ogni riga distribuisce l'attenzione sui token del contesto.</div>
+    </div>`;
+}
+
+
+function renderNeural(){
+  const layers = [4,7,7,4];
+  const x = [70, 250, 440, 620];
+  const svgW = 690, svgH = 250;
+  const nodes = [];
+  layers.forEach((count,li)=>{
+    const gap = svgH/(count+1);
+    for(let j=0;j<count;j++) nodes.push({li,j,x:x[li],y:gap*(j+1)});
+  });
+  let links="";
+  for(let li=0; li<layers.length-1; li++){
+    const from = nodes.filter(n=>n.li===li);
+    const to = nodes.filter(n=>n.li===li+1);
+    from.forEach(a=>to.forEach((b,k)=>{
+      const act = (a.j+k+li)%4===0;
+      links += `<line class="link ${act?'active':''}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" />`;
+    }));
+  }
+  const circles = nodes.map((n,i)=>`<circle class="node ${i%5===0?'active':''}" cx="${n.x}" cy="${n.y}" r="${n.li===1||n.li===2?10:12}" />`).join("");
+  return `<div class="neural"><svg viewBox="0 0 ${svgW} ${svgH}">${links}${circles}</svg></div>`;
+}
+
+function renderLogits(cycle, prob=false){
+  const maxLogit = Math.max(...cycle.candidates.map(c=>c[1]));
+  return `<div class="logitBars">` + cycle.candidates.map((c,i)=>{
+    const width = prob ? c[2]*100 : (c[1]/maxLogit)*100;
+    const val = prob ? (c[2]*100).toFixed(1)+"%" : c[1].toFixed(1);
+    return `<div class="logitRow ${i===0?'top':''}">
+      <div class="logitLabel">${escapeHtml(c[0])}</div>
+      <div class="logitTrack"><div class="logitFill" style="width:${width}%"></div></div>
+      <div class="logitVal">${val}</div>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function renderCanvas(){
+  const {stage, stageIdx, cycle, cycleIdx} = current();
+  $("stageTitle").textContent = stage.title;
+  $("stageSub").textContent = stage.sub;
+  $("explain").innerHTML = stage.explain;
+
+  const tokens = cycle.tokens;
+  let html = "";
+
+  switch(stage.id){
+    case "input":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Frase nel prompt</h4>
+            <div class="contextText">${escapeHtml(contextString(cycle))}</div>
+            <p style="margin-top:12px">${cycle.note}</p>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Obiettivo reale</h4>
+            <p>Prevedere il prossimo token, non recuperare una risposta da una tabella.</p>
+          </div>
+        </div>`);
+      break;
+
+    case "tokenizer":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Testo</h4>
+            <div class="contextText">${escapeHtml(contextString(cycle))}</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Token</h4>
+            <div class="tokenList" style="justify-content:center">${tokensHtml(tokens)}</div>
+          </div>
+        </div>`);
+      break;
+
+    case "ids":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Token</h4>
+            <div class="tokenList" style="justify-content:center">${tokensHtml(tokens)}</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>ID numerici</h4>
+            <table class="idTable">${tokens.map(t=>`<tr><td>${escapeHtml(t)}</td><td>${ids[t] ?? 9999}</td></tr>`).join("")}</table>
+          </div>
+        </div>`);
+      break;
+
+    case "embedding":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large">
+            <h4>ID token</h4>
+            <p class="formula">ID → riga</p>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Embedding Matrix</h4>
+            <p>vocab_size × d_model</p>
+            <div class="miniMatrix">${Array.from({length:96},(_,i)=>`<span class="cell ${(i%9===0 || i%17===0)?'hot':''}"></span>`).join("")}</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Embedding</h4>
+            ${vectorBars(14)}
+          </div>
+        </div>
+        <div class="warn">Esempio: in un modello reale un embedding può avere 4.096, 8.192 o più dimensioni.</div>`);
+      break;
+
+    case "position":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large">
+            <h4>Token embedding</h4>
+            ${vectorBars(12)}
+          </div>
+          <div class="symbol">+</div>
+          <div class="flowCard large">
+            <h4>Position</h4>
+            <div class="tokenList" style="justify-content:center">${tokens.slice(0,7).map((t,i)=>`<span class="token">pos ${i+1}</span>`).join("")}</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Input Transformer</h4>
+            <p class="formula">E + Pos</p>
+          </div>
+        </div>`);
+      break;
+
+    case "transformerIn":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Sequenza di embedding</h4>
+            <div class="tokenList" style="justify-content:center">${tokensHtml(tokens)}</div>
+            ${vectorBars(18)}
+          </div>
+        </div>
+        ${layerStack(0)}
+        <div class="warn">Ogni blocco Transformer contiene: Multi-Head Self-Attention → Residual/Norm → FFN → Residual/Norm.</div>`);
+      break;
+
+    case "multihead":
+      html = wrapCanvas(`
+        <h3 style="margin:0 0 8px">Teste di attenzione parallele dentro lo stesso layer</h3>
+        <p style="color:var(--muted);margin:0 0 12px;line-height:1.45">
+          Ogni testa produce una propria lettura del contesto. Qui usiamo mini-heatmap compatte per evitare sovrapposizioni e mostrare l'idea: più colore = più attenzione.
+        </p>
+        <div class="headGrid">
+          ${["relazioni sintattiche","soggetto/verbo","punteggiatura","semantica"].map((name,i)=>renderHeadCard(i+1, name, tokens)).join("")}
+        </div>
+        <div class="warn">Le teste lavorano in parallelo nello stesso layer. I risultati vengono concatenati, proiettati e poi passano alla residual connection.</div>`);
+      break;
+
+    case "qkv":
+      html = wrapCanvas(`
+        <div class="flowCard wide" style="margin:0 auto 18px">
+          <h4>Focus token: ${escapeHtml(cycle.focus)}</h4>
+          <p>Ogni token genera Q, K, V tramite matrici apprese diverse.</p>
+        </div>
+        <div class="qkvWrap">
+          <div class="qkv query"><h3>Q</h3><p>Query<br><strong>Cosa sto cercando?</strong></p><p class="formula">Q = E·WQ</p></div>
+          <div class="qkv key"><h3>K</h3><p>Key<br><strong>Cosa offro agli altri?</strong></p><p class="formula">K = E·WK</p></div>
+          <div class="qkv value"><h3>V</h3><p>Value<br><strong>Quale informazione porto?</strong></p><p class="formula">V = E·WV</p></div>
+        </div>`);
+      break;
+
+    case "scores":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large">
+            <h4>Query</h4>${vectorBars(10)}
+          </div>
+          <div class="symbol">×</div>
+          <div class="flowCard large">
+            <h4>Keyᵀ</h4>${vectorBars(10)}
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Score Matrix</h4>
+            <p class="formula">Scores = Q × Kᵀ / √dₖ</p>
+          </div>
+        </div>
+        ${matrixHtml(tokens, false)}`);
+      break;
+
+    case "softmaxAtt":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Score Matrix</h4>
+            <p>Valori non normalizzati</p>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Softmax</h4>
+            <p>Ogni riga somma 1</p>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Attention Matrix</h4>
+            <p>Pesi di attenzione</p>
+          </div>
+        </div>
+        ${matrixHtml(tokens, true)}`);
+      break;
+
+    case "attnV":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Attention Matrix</h4>
+            <p>Pesi normalizzati</p>
+            ${matrixHtml(tokens.slice(-4), true)}
+          </div>
+          <div class="symbol">×</div>
+          <div class="flowCard large">
+            <h4>Values</h4>
+            ${vectorBars(10)}
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Embedding contestualizzati</h4>
+            <p class="formula">A × V</p>
+            ${vectorBars(16)}
+          </div>
+        </div>`);
+      break;
+
+    case "residual1":
+      html = wrapCanvas(`
+        <div class="plusNorm">
+          <div class="flowCard"><h4>Input originale</h4>${vectorBars(8)}</div>
+          <div class="symbol">+</div>
+          <div class="flowCard"><h4>Output Attention</h4>${vectorBars(8)}</div>
+          <div class="symbol norm">Norm</div>
+          <div class="flowCard"><h4>Output stabile</h4>${vectorBars(8)}</div>
+        </div>
+        <div class="warn">Residual = non perdiamo l'informazione precedente; LayerNorm = manteniamo valori stabili.</div>`);
+      break;
+
+    case "ffn":
+      html = wrapCanvas(`
+        <h3 style="margin:0 0 8px">FFN: trasformazione token per token</h3>
+        <div class="ffnDims">
+          <span class="dim">d_model<br>4096</span>
+          <span class="arrow"></span>
+          <span class="dim big">spazio espanso<br>16384</span>
+          <span class="dim">GELU</span>
+          <span class="arrow"></span>
+          <span class="dim">d_model<br>4096</span>
+        </div>
+        ${renderNeural()}
+        <div class="warn">La FFN non fa parlare i token tra loro: trasforma individualmente ogni embedding già arricchito dalla self-attention.</div>`);
+      break;
+
+    case "residual2":
+      html = wrapCanvas(`
+        <div class="plusNorm">
+          <div class="flowCard"><h4>Input FFN</h4>${vectorBars(8)}</div>
+          <div class="symbol">+</div>
+          <div class="flowCard"><h4>Output FFN</h4>${vectorBars(8)}</div>
+          <div class="symbol norm">Norm</div>
+          <div class="flowCard"><h4>Output layer</h4>${vectorBars(8)}</div>
+        </div>
+        <div class="warn">Questo è l'output del blocco Transformer: una nuova sequenza di embedding, più ricca e contestualizzata.</div>`);
+      break;
+
+    case "stack":
+      html = wrapCanvas(`
+        ${layerStack(5)}
+        <div class="bigFlow" style="min-height:170px">
+          <div class="flowCard large wide">
+            <h4>Il Layer 2 riceve l'output del Layer 1</h4>
+            <p>Da questi nuovi embedding ricalcola nuove Q, nuove K e nuove V. Il ciclo si ripete molte volte.</p>
+          </div>
+        </div>`);
+      break;
+
+    case "finalVector":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Ultimo layer Transformer</h4>
+            ${layerStack(7, true)}
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Vettore finale dell'ultima posizione</h4>
+            <p class="formula">h_last ∈ Rᵈ</p>
+            ${vectorBars(20)}
+          </div>
+        </div>
+        <div class="warn">Questo vettore rappresenta il contesto corrente. Non è ancora un token.</div>`);
+      break;
+
+    case "projection":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large">
+            <h4>h_last</h4>
+            <p>d_model</p>${vectorBars(12)}
+          </div>
+          <div class="symbol">×</div>
+          <div class="flowCard large wide">
+            <h4>Embedding Matrixᵀ</h4>
+            <p>weight tying</p>
+            <div class="miniMatrix">${Array.from({length:96},(_,i)=>`<span class="cell ${(i%11===0||i%19===0)?'hot':''}"></span>`).join("")}</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Logits</h4>
+            <p>vocab_size</p>
+          </div>
+        </div>
+        <p class="formula">h_last (1 × d_model) · Eᵀ (d_model × vocab_size) = logits (1 × vocab_size)</p>`);
+      break;
+
+    case "logits":
+      html = wrapCanvas(`
+        <h3 style="text-align:center;margin-top:0">Logits: punteggi non normalizzati sul vocabolario</h3>
+        ${renderLogits(cycle, false)}
+        <div class="warn">I logits non sono percentuali. Sono punteggi grezzi: più sono alti, più quel token è compatibile con il contesto.</div>`);
+      break;
+
+    case "softmaxOut":
+      html = wrapCanvas(`
+        <h3 style="text-align:center;margin-top:0">Softmax finale: logits → probabilità</h3>
+        ${renderLogits(cycle, true)}
+        <div class="warn">La distribuzione finale dice quali token sono candidati plausibili come continuazione.</div>`);
+      break;
+
+    case "select":
+      html = wrapCanvas(`
+        <div style="text-align:center">
+          <h3>Token selezionato</h3>
+          <div class="predictedToken">${escapeHtml(cycle.predicted)}</div>
+          <p style="color:var(--muted);max-width:620px;margin:18px auto 0;line-height:1.5">Il token scelto viene prodotto in output. Non è ancora una frase completa: è solo il prossimo passo della sequenza.</p>
+        </div>
+        ${renderLogits(cycle, true)}`);
+      break;
+
+    case "loop":
+      const after = cycle.predicted === "<EOS>" ? contextString(cycle) + " [fine]" : contextString(cycle) + cycle.predicted;
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Contesto prima</h4>
+            <div class="contextText">${escapeHtml(contextString(cycle))}</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Aggiungo token</h4>
+            <div class="predictedToken" style="font-size:24px;min-height:58px">${escapeHtml(cycle.predicted)}</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Nuovo contesto</h4>
+            <div class="contextText">${escapeHtml(after)}</div>
+          </div>
+        </div>
+        <div class="warn">${cycle.predicted === "<EOS>" ? "Il token di fine sequenza chiude il ciclo." : "Il modello riparte dall'inizio della pipeline per generare il token successivo."}</div>`);
+      break;
+  }
+
+  $("canvas").innerHTML = html;
+}
+
+function layerStack(active=0, small=false){
+  const blocks = Array.from({length:8}, (_,i)=>{
+    const h = 78 + i*22;
+    return `<div class="layerBlock ${i<=active?'hot':''}" style="height:${small?Math.max(60,h/1.9):h}px">L${i+1}</div>`;
+  }).join("");
+  return `<div class="layerStack" style="${small?'height:180px;margin:0':''}">${blocks}</div>`;
+}
+
+function render(){
+  renderSide();
+  renderCanvas();
+}
+
+function next(){
+  if(step < cycles.length*stages.length-1){
+    step++;
+    render();
+  }else{
+    stop();
+  }
+}
+function prev(){
+  if(step>0){ step--; render(); }
+}
+function reset(){
+  step=0; stop(); render();
+}
+function play(){
+  playing = true;
+  $("playBtn").textContent = "⏸ Pausa";
+  schedule();
+}
+function stop(){
+  playing = false;
+  $("playBtn").textContent = "▶ Play";
+  if(timer) clearTimeout(timer);
+}
+function schedule(){
+  if(!playing) return;
+  const delay = Number($("speed").value);
+  timer = setTimeout(()=>{
+    if(step >= cycles.length*stages.length-1){ stop(); return; }
+    next();
+    schedule();
+  }, delay);
+}
+
+$("playBtn").addEventListener("click", ()=> playing ? stop() : play());
+$("nextBtn").addEventListener("click", ()=>{ stop(); next(); });
+$("prevBtn").addEventListener("click", ()=>{ stop(); prev(); });
+$("resetBtn").addEventListener("click", reset);
+$("speed").addEventListener("input", ()=>{ if(playing){ clearTimeout(timer); schedule(); } });
+
+
+/* --- Vista generazione nodo-per-nodo --- */
+const networkPhases = [
+  {title:"1. Token in ingresso", desc:"La sequenza corrente entra nel modello come testo già presente nel contesto.", group:0},
+  {title:"2. Tokenizer", desc:"Il testo viene spezzato in token compatibili con il vocabolario del modello.", group:0},
+  {title:"3. ID ed embedding lookup", desc:"Ogni token diventa un ID e l'ID recupera la riga corrispondente nella Embedding Matrix.", group:1},
+  {title:"4. Positional encoding", desc:"Agli embedding viene aggiunta informazione di posizione per preservare l'ordine della frase.", group:1},
+  {title:"5. Q / K / V", desc:"Ogni embedding produce Query, Key e Value tramite matrici apprese dal layer.", group:2},
+  {title:"6. Score matrix", desc:"Le Query vengono confrontate con tutte le Key: Q × Kᵀ produce gli score non normalizzati.", group:3},
+  {title:"7. Softmax di attenzione", desc:"Gli score diventano pesi di attenzione: ogni riga somma a 1.", group:3},
+  {title:"8. Attention × Value", desc:"I pesi di attenzione vengono applicati ai Value, creando embedding contestualizzati.", group:4},
+  {title:"9. Residual + Norm", desc:"Il risultato della self-attention viene sommato al residuo e normalizzato.", group:4},
+  {title:"10. Feed Forward Network", desc:"Ogni embedding viene trasformato individualmente: espansione, attivazione, compressione.", group:5},
+  {title:"11. Residual + Norm finale", desc:"Anche l'output della FFN viene sommato al residuo e normalizzato.", group:5},
+  {title:"12. Stack di layer", desc:"Il nuovo embedding passa al layer successivo. Il ciclo si ripete molte volte.", group:6},
+  {title:"13. Vettore finale", desc:"Dall'ultimo layer esce il vettore contestuale dell'ultima posizione.", group:6},
+  {title:"14. Proiezione sul vocabolario", desc:"Il vettore finale viene moltiplicato per la matrice di output, spesso la Embedding Matrix trasposta.", group:7},
+  {title:"15. Logits", desc:"La proiezione produce un punteggio grezzo per ogni token del vocabolario.", group:7},
+  {title:"16. Softmax finale", desc:"I logits vengono trasformati in probabilità sui token candidati.", group:7},
+  {title:"17. Token generato", desc:"Il token più adatto viene prodotto in output secondo le regole di decoding.", group:8},
+  {title:"18. Append e riciclo", desc:"Il token generato viene aggiunto al contesto. Il modello riparte per prevedere il successivo.", group:8}
+];
+
+let networkStep = 0;
+let networkPlaying = false;
+let networkTimer = null;
+
+function networkCurrent(){
+  const phaseCount = networkPhases.length;
+  const total = phaseCount * cycles.length;
+  const safeStep = Math.min(networkStep, total - 1);
+  const cycleIdx = Math.floor(safeStep / phaseCount);
+  const phaseIdx = safeStep % phaseCount;
+  return {cycle: cycles[cycleIdx], cycleIdx, phase: networkPhases[phaseIdx], phaseIdx, total};
+}
+
+function networkContextHtml(cycleIdx, phaseIdx){
+  const emittedBefore = generatedSoFar(cycleIdx).join("");
+  const currentToken = cycles[cycleIdx].predicted;
+  const showCurrent = phaseIdx >= 16 && currentToken !== "<EOS>";
+  const showEnd = phaseIdx >= 16 && currentToken === "<EOS>";
+  return escapeHtml(baseTokens.join("")) +
+    `<span class="fresh">${escapeHtml(emittedBefore)}</span>` +
+    (showCurrent ? `<span class="fresh">${escapeHtml(currentToken)}</span>` : "") +
+    (showEnd ? `<span class="fresh"> [fine]</span>` : "");
+}
+
+function networkNodeClass(group, activeGroup){
+  if(group < activeGroup) return "done";
+  if(group === activeGroup) return "active";
+  return "";
+}
+
+function networkLinkClass(fromGroup, toGroup, activeGroup){
+  if(toGroup < activeGroup) return "done";
+  if(toGroup === activeGroup || fromGroup === activeGroup) return "active";
+  return "";
+}
+
+function networkNodesForCycle(cycle){
+  const t = cycle.tokens.slice(-7);
+  const groups = [
+    {id:"input", label:"Token / contesto", x:70, nodes:t.map((v,i)=>({label:v.trim() || "spazio", y:95+i*62, type:"token"}))},
+    {id:"embed", label:"Embedding + posizione", x:205, nodes:["E₁","E₂","E₃","E₄","E₅"].map((v,i)=>({label:v, y:125+i*82}))},
+    {id:"qkv", label:"Q / K / V", x:340, nodes:["Q","K","V"].map((v,i)=>({label:v, y:160+i*110}))},
+    {id:"heads", label:"Multi-head attention", x:485, nodes:["Head 1","Head 2","Head 3","Head 4"].map((v,i)=>({label:v, y:120+i*88}))},
+    {id:"attn", label:"Attention × V + Norm", x:625, nodes:["A×V","Residual","Norm","Context"].map((v,i)=>({label:v, y:120+i*88}))},
+    {id:"ffn", label:"FFN", x:770, nodes:["4096","↑","GELU","↓","4096","Norm"].map((v,i)=>({label:v, y:95+i*66}))},
+    {id:"layers", label:"Layer stack", x:915, nodes:["L1","L2","⋯","LN","h_last"].map((v,i)=>({label:v, y:105+i*78}))},
+    {id:"vocab", label:"Vocab / logits", x:1050, nodes:cycle.candidates.slice(0,5).map((v,i)=>({label:v[0].trim() || "newline", y:105+i*78}))},
+    {id:"output", label:"Output", x:1138, nodes:[{label:cycle.predicted, y:300, type:"output"}]}
+  ];
+  return groups;
+}
+
+function svgText(x,y,text,cls="netTiny",anchor="middle"){
+  return `<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}">${escapeHtml(text)}</text>`;
+}
+
+function renderNetworkSvg(){
+  const {cycle, phase, phaseIdx} = networkCurrent();
+  const activeGroup = phase.group;
+  const groups = networkNodesForCycle(cycle);
+  let svg = "";
+
+  // group backgrounds and labels
+  groups.forEach((g, gi)=>{
+    const cls = networkNodeClass(gi, activeGroup);
+    const x = gi === 8 ? g.x - 50 : g.x - 54;
+    const y = 45;
+    const w = gi === 8 ? 92 : 108;
+    const h = 500;
+    svg += `<rect class="netRect ${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="18"></rect>`;
+    svg += svgText(g.x, 30, g.label, "netLabel");
+  });
+
+  // links
+  for(let gi=0; gi<groups.length-1; gi++){
+    const a = groups[gi], b = groups[gi+1];
+    a.nodes.forEach((n, ni)=>{
+      b.nodes.forEach((m, mi)=>{
+        if((ni + mi + gi) % 2 === 0 || a.nodes.length <= 3 || b.nodes.length <= 3){
+          const cls = networkLinkClass(gi, gi+1, activeGroup);
+          const x1 = a.x + (gi===8?0:22), y1 = n.y;
+          const x2 = b.x - 22, y2 = m.y;
+          svg += `<line class="netLink ${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`;
+        }
+      });
+    });
+  }
+
+  // nodes
+  groups.forEach((g, gi)=>{
+    const cls = networkNodeClass(gi, activeGroup);
+    g.nodes.forEach((n, ni)=>{
+      const isOut = n.type === "output";
+      if(n.type === "token" || isOut){
+        const w = isOut ? 78 : 82;
+        const h = isOut ? 58 : 34;
+        const x = g.x - w/2, y = n.y - h/2;
+        svg += `<rect class="${isOut ? "netOutputToken" : "netNode"} ${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${isOut ? 18 : 13}"></rect>`;
+        svg += svgText(g.x, n.y + 4, n.label, isOut ? "netLabel" : "netTiny");
+      }else{
+        const r = gi === activeGroup ? 22 : 18;
+        svg += `<circle class="netNode ${cls}" cx="${g.x}" cy="${n.y}" r="${r}"></circle>`;
+        svg += svgText(g.x, n.y + 4, n.label, "netTiny");
+      }
+    });
+  });
+
+  // phase pulse marker
+  const g = groups[activeGroup];
+  svg += `<circle cx="${g.x}" cy="585" r="8" fill="rgba(100,244,172,.95)">
+            <animate attributeName="r" values="6;16;6" dur="1s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;.25;1" dur="1s" repeatCount="indefinite"/>
+          </circle>`;
+  svg += svgText(g.x, 612, "fase attiva", "netTiny");
+
+  return svg;
+}
+
+function renderNetwork(){
+  const {cycle, cycleIdx, phase, phaseIdx, total} = networkCurrent();
+  $("networkPhaseTitle").textContent = phase.title;
+  $("networkPhaseDesc").textContent = phase.desc;
+  $("networkTargetToken").textContent = cycle.predicted;
+  $("networkStepLabel").textContent = `${phaseIdx+1}/${networkPhases.length} · ciclo ${cycleIdx+1}/${cycles.length}`;
+  $("networkGeneratedToken").textContent = phaseIdx >= 16 ? cycle.predicted : "in calcolo";
+  $("networkContext").innerHTML = networkContextHtml(cycleIdx, phaseIdx);
+  $("networkProgressFill").style.width = `${(networkStep / (total - 1)) * 100}%`;
+  $("networkSvg").innerHTML = renderNetworkSvg();
+}
+
+function networkNext(){
+  const max = cycles.length * networkPhases.length - 1;
+  if(networkStep < max){
+    networkStep++;
+    renderNetwork();
+  }else{
+    networkStop();
+  }
+}
+function networkPrev(){
+  if(networkStep > 0){
+    networkStep--;
+    renderNetwork();
+  }
+}
+function networkReset(){
+  networkStep = 0;
+  networkStop();
+  renderNetwork();
+}
+function networkPlay(){
+  networkPlaying = true;
+  $("networkPlayBtn").textContent = "⏸ Pausa";
+  networkSchedule();
+}
+function networkStop(){
+  networkPlaying = false;
+  $("networkPlayBtn").textContent = "▶ Avvia";
+  if(networkTimer) clearTimeout(networkTimer);
+}
+function networkSchedule(){
+  if(!networkPlaying) return;
+  const delay = Number($("networkSpeed").value);
+  networkTimer = setTimeout(()=>{
+    const max = cycles.length * networkPhases.length - 1;
+    if(networkStep >= max){ networkStop(); return; }
+    networkNext();
+    networkSchedule();
+  }, delay);
+}
+
+$("openNetworkBtn").addEventListener("click", ()=>{
+  stop();
+  $("networkOverlay").classList.add("open");
+  $("networkOverlay").setAttribute("aria-hidden","false");
+  renderNetwork();
+});
+$("closeNetworkBtn").addEventListener("click", ()=>{
+  networkStop();
+  $("networkOverlay").classList.remove("open");
+  $("networkOverlay").setAttribute("aria-hidden","true");
+});
+$("networkPlayBtn").addEventListener("click", ()=> networkPlaying ? networkStop() : networkPlay());
+$("networkNextBtn").addEventListener("click", ()=>{ networkStop(); networkNext(); });
+$("networkPrevBtn").addEventListener("click", ()=>{ networkStop(); networkPrev(); });
+$("networkResetBtn").addEventListener("click", networkReset);
+$("networkSpeed").addEventListener("input", ()=>{ if(networkPlaying){ clearTimeout(networkTimer); networkSchedule(); } });
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape" && $("networkOverlay").classList.contains("open")){
+    networkStop();
+    $("networkOverlay").classList.remove("open");
+    $("networkOverlay").setAttribute("aria-hidden","true");
+  }
+});
+
+
+render();
+</script>
+</body>
+</html>

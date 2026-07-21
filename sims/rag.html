@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LLMLab — Dentro un sistema RAG · BespokeAIDA</title>
+<style>
+:root{
+  --bg:#0b1020;
+  --panel:#151f3a;
+  --panel2:#10182d;
+  --text:#edf3ff;
+  --muted:#9fb2d8;
+  --cyan:#38d9ff;
+  --blue:#6ea8ff;
+  --purple:#a78bfa;
+  --green:#64f4ac;
+  --yellow:#ffd166;
+  --orange:#ff9f43;
+  --red:#ff6b6b;
+  --pink:#ff7ad9;
+  --white:#ffffff;
+  --shadow:0 20px 60px rgba(0,0,0,.35);
+  --radius:22px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  background:
+    radial-gradient(circle at 18% 6%, rgba(56,217,255,.18), transparent 30%),
+    radial-gradient(circle at 88% 14%, rgba(167,139,250,.18), transparent 28%),
+    radial-gradient(circle at 50% 95%, rgba(100,244,172,.12), transparent 34%),
+    linear-gradient(135deg, #070b16 0%, var(--bg) 50%, #0d1325 100%);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+.app{
+  width:min(1540px, 96vw);
+  margin:0 auto;
+  padding:22px 0 36px;
+}
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:22px;
+  margin-bottom:16px;
+}
+.title h1{
+  margin:0;
+  font-size:clamp(26px, 3vw, 44px);
+  letter-spacing:-.04em;
+  line-height:1.02;
+}
+.title p{
+  margin:8px 0 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.45;
+}
+button{
+  border:0;
+  border-radius:14px;
+  color:var(--text);
+  background:linear-gradient(135deg, rgba(56,217,255,.24), rgba(167,139,250,.22));
+  border:1px solid rgba(255,255,255,.12);
+  padding:11px 15px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.2s ease;
+}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(56,217,255,.15)}
+button.secondary{background:rgba(255,255,255,.06)}
+.actionBadge{
+  border:1px solid rgba(255,255,255,.12);
+  padding:12px 16px;
+  border-radius:999px;
+  background:rgba(255,255,255,.055);
+  backdrop-filter:blur(10px);
+  color:#d9e6ff;
+  box-shadow:var(--shadow);
+  white-space:nowrap;
+  display:inline-flex;gap:8px;align-items:center;
+}
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px;
+  background:rgba(15,23,42,.72);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  margin-bottom:14px;
+}
+.control-left,.control-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+label{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px}
+input[type="range"]{accent-color:var(--cyan)}
+.kv{
+  display:flex;gap:8px;align-items:center;
+  color:var(--muted);
+  font-size:13px;
+  padding:9px 12px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+}
+.kv strong{color:var(--white)}
+.progressWrap{
+  width:100%;
+  height:10px;
+  background:rgba(255,255,255,.08);
+  border-radius:999px;
+  overflow:hidden;
+  margin-bottom:18px;
+  border:1px solid rgba(255,255,255,.07);
+}
+#progressFill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--cyan),var(--purple),var(--green));
+  border-radius:999px;
+  transition:width .55s ease;
+}
+.layout{
+  display:grid;
+  grid-template-columns:320px minmax(630px, 1fr) 365px;
+  gap:16px;
+}
+@media (max-width:1180px){.layout{grid-template-columns:1fr}}
+.panel{
+  position:relative;
+  background:linear-gradient(180deg, rgba(21,31,58,.88), rgba(14,22,42,.88));
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--radius);
+  padding:16px;
+  min-height:96px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  transition:.35s ease;
+}
+.panel + .panel{margin-top:14px}
+.panel:before{
+  content:"";
+  position:absolute;inset:-1px;
+  background:radial-gradient(circle at 15% 0%, rgba(56,217,255,.14), transparent 36%);
+  pointer-events:none;
+  opacity:.75;
+}
+.panel.active{
+  border-color:rgba(56,217,255,.78);
+  box-shadow:0 0 0 1px rgba(56,217,255,.2), 0 0 36px rgba(56,217,255,.18), var(--shadow);
+  transform:translateY(-1px);
+}
+.panel h3{margin:0 0 10px;display:flex;align-items:center;gap:8px;font-size:15px;letter-spacing:-.02em}
+.panel small{display:block;color:var(--muted);line-height:1.45}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 16px var(--cyan)}
+.dot.purple{background:var(--purple);box-shadow:0 0 16px var(--purple)}
+.dot.green{background:var(--green);box-shadow:0 0 16px var(--green)}
+.dot.yellow{background:var(--yellow);box-shadow:0 0 16px var(--yellow)}
+.dot.orange{background:var(--orange);box-shadow:0 0 16px var(--orange)}
+.dot.red{background:var(--red);box-shadow:0 0 16px var(--red)}
+.scene{
+  min-height:745px;
+  border-radius:28px;
+  background:
+    linear-gradient(180deg, rgba(16,24,45,.88), rgba(11,16,32,.92)),
+    radial-gradient(circle at 20% 20%, rgba(56,217,255,.12), transparent 25%),
+    radial-gradient(circle at 75% 60%, rgba(167,139,250,.14), transparent 30%);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+  padding:20px;
+}
+.scene:after{
+  content:"";
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+  background-size:34px 34px;
+  mask-image:linear-gradient(to bottom, transparent, black 15%, black 86%, transparent);
+  pointer-events:none;
+}
+.sceneTop{position:relative;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.stageTitle{font-size:24px;font-weight:950;letter-spacing:-.04em;margin:0 0 6px}
+.stageSub{color:var(--muted);line-height:1.45;max-width:830px;margin:0}
+.cycleBadge{
+  padding:9px 12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.1);
+  color:#dfeaff;
+  font-weight:800;
+  font-size:13px;
+  white-space:nowrap;
+}
+.canvas{
+  position:relative;z-index:2;
+  min-height:605px;
+  border-radius:24px;
+  background:rgba(5,9,19,.32);
+  border:1px solid rgba(255,255,255,.07);
+  overflow:hidden;
+  padding:18px;
+}
+.explain{
+  margin-top:14px;
+  padding:16px 18px;
+  border-radius:22px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.09);
+  color:#dbe9ff;
+  line-height:1.55;
+}
+.rainbowScan{
+  position:absolute;left:-30%;top:0;height:100%;width:28%;
+  background:linear-gradient(90deg, transparent, rgba(56,217,255,.16), rgba(167,139,250,.16), transparent);
+  animation:scan 2.4s linear infinite;
+  pointer-events:none;
+}
+@keyframes scan{to{left:102%}}
+.tokenList{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.token{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:31px;padding:7px 10px;border-radius:12px;
+  background:rgba(110,168,255,.12);
+  border:1px solid rgba(110,168,255,.25);
+  color:#eaf2ff;
+  font-weight:800;font-size:13px;
+  animation:tokenIn .45s ease both;
+}
+.token.pred{background:rgba(100,244,172,.14);border-color:rgba(100,244,172,.5);color:#dffff0;box-shadow:0 0 22px rgba(100,244,172,.16)}
+.token.focus{background:rgba(255,209,102,.16);border-color:rgba(255,209,102,.55);color:#fff4cf}
+@keyframes tokenIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+.bigFlow{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;min-height:360px}
+.flowCard{
+  width:160px;min-height:120px;border-radius:20px;
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
+  border:1px solid rgba(255,255,255,.12);
+  padding:14px;text-align:center;position:relative;overflow:hidden;
+  animation:cardIn .55s ease both;
+}
+.flowCard.large{width:240px;min-height:155px}
+.flowCard.wide{width:350px}
+.flowCard.xwide{width:min(760px, 100%)}
+.flowCard h4{margin:0 0 8px;font-size:14px}
+.flowCard p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.arrow{
+  width:48px;height:2px;background:linear-gradient(90deg,var(--cyan),var(--purple));
+  position:relative;box-shadow:0 0 15px rgba(56,217,255,.35);
+}
+.arrow:after{
+  content:"";position:absolute;right:-2px;top:-5px;
+  border-left:10px solid var(--purple);border-top:6px solid transparent;border-bottom:6px solid transparent;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.formula{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  color:#dcf7ff;background:rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:12px 14px;display:inline-block;
+}
+.warn{
+  color:#ffe3aa;background:rgba(255,209,102,.08);
+  border:1px solid rgba(255,209,102,.18);
+  padding:10px 12px;border-radius:14px;margin-top:12px;
+}
+.contextText{font-size:18px;line-height:1.45;font-weight:800;color:#fff}
+.generated{display:inline-block;margin-left:4px;color:var(--green);text-shadow:0 0 18px rgba(100,244,172,.4)}
+.docCard{
+  padding:14px;border-radius:18px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  text-align:left;
+}
+.docIcon{
+  width:64px;height:82px;margin:0 auto 12px;border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(215,229,255,.86));
+  color:#0b1020;display:grid;place-items:center;font-size:28px;font-weight:950;
+  box-shadow:0 14px 30px rgba(0,0,0,.20);
+}
+.chunkGrid{display:grid;grid-template-columns:repeat(3, minmax(150px,1fr));gap:12px;margin-top:14px}
+@media (max-width:780px){.chunkGrid{grid-template-columns:1fr}}
+.chunk{
+  border-radius:18px;padding:14px;
+  background:rgba(100,244,172,.07);
+  border:1px solid rgba(100,244,172,.20);
+  text-align:left;min-height:130px;
+}
+.chunk h4{margin:0 0 8px;color:#eafff3}
+.chunk p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.vectorBars{display:flex;gap:5px;align-items:end;height:88px;justify-content:center}
+.bar{width:10px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,var(--cyan),var(--blue));animation:barDance .85s ease-in-out infinite alternate}
+.bar:nth-child(2n){background:linear-gradient(180deg,var(--purple),var(--pink));animation-delay:.12s}
+.bar:nth-child(3n){background:linear-gradient(180deg,var(--green),var(--cyan));animation-delay:.25s}
+@keyframes barDance{from{transform:scaleY(.85);filter:brightness(.85)}to{transform:scaleY(1.05);filter:brightness(1.2)}}
+.miniMatrix{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:10px}
+.cell{height:13px;border-radius:4px;background:rgba(110,168,255,.12)}
+.cell.hot{background:linear-gradient(135deg,var(--cyan),var(--purple));box-shadow:0 0 12px rgba(56,217,255,.25);animation:pulse .9s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.58}to{opacity:1}}
+.hierarchy{
+  display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:stretch;margin-top:10px;
+}
+@media (max-width:900px){.hierarchy{grid-template-columns:1fr}}
+.tree{
+  padding:16px;border-radius:20px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);
+}
+.treeNode{display:flex;align-items:center;gap:10px;margin:10px 0;color:#e8f1ff}
+.indent1{padding-left:24px}.indent2{padding-left:48px}.indent3{padding-left:72px}
+.square{width:18px;height:18px;border-radius:5px;background:var(--cyan);box-shadow:0 0 14px rgba(56,217,255,.4)}
+.square.l0{background:var(--purple)}.square.l1{background:var(--blue)}.square.l2{background:var(--green)}.square.l3{background:var(--orange)}
+.levelTable{
+  width:100%;border-collapse:collapse;font-size:13px;color:#dce8ff;
+}
+.levelTable td,.levelTable th{border-bottom:1px solid rgba(255,255,255,.08);padding:9px 8px;text-align:left}
+.levelTable th{color:#fff;background:rgba(255,255,255,.055)}
+.levelPill{display:inline-flex;border-radius:999px;padding:5px 8px;font-weight:950;color:#08101b}
+.l0pill{background:var(--purple)}.l1pill{background:var(--blue)}.l2pill{background:var(--green)}.l3pill{background:var(--orange)}
+.searchPlot{
+  display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:10px;align-items:stretch;
+}
+@media (max-width:900px){.searchPlot{grid-template-columns:1fr}}
+.plotBox,.scoreBox{
+  min-height:360px;border-radius:22px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);padding:16px;
+}
+.plotBox svg{width:100%;height:310px}
+.axis{stroke:rgba(255,255,255,.28);stroke-width:1.5}
+.vec{stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 7px rgba(56,217,255,.3))}
+.vec.q{stroke:var(--purple)}
+.vec.good{stroke:var(--green)}
+.vec.mid{stroke:var(--yellow)}
+.vec.bad{stroke:var(--red)}
+.angleArc{fill:none;stroke:rgba(255,209,102,.75);stroke-width:3;stroke-dasharray:5 5}
+.scoreRow{
+  display:grid;grid-template-columns:95px 1fr 66px;gap:9px;align-items:center;margin:10px 0;font-size:13px
+}
+.scoreLabel{font-weight:950;color:#eaf2ff}
+.scoreTrack{height:26px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+.scoreFill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .85s ease}
+.scoreVal{text-align:right;color:#dce8ff;font-weight:900}
+.rerankGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+@media (max-width:900px){.rerankGrid{grid-template-columns:1fr}}
+.rankList{display:grid;gap:10px}
+.rankItem{
+  display:grid;grid-template-columns:36px 1fr 60px;gap:8px;align-items:center;
+  padding:11px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09)
+}
+.rankNum{width:30px;height:30px;border-radius:10px;background:rgba(56,217,255,.18);display:grid;place-items:center;font-weight:950;color:#dcf7ff}
+.rankScore{font-weight:950;color:var(--green);text-align:right}
+.promptBox{
+  border-radius:20px;background:rgba(255,255,255,.92);color:#10182d;border:1px solid rgba(255,255,255,.5);
+  padding:18px;line-height:1.42;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;text-align:left;
+}
+.promptBox strong{color:#07111f}
+.timeline{display:grid;gap:8px;margin-top:10px}
+.tlineItem{display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:13px}
+.tlineItem.active{color:#fff}
+.tlineDot{min-width:10px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.18);margin-top:5px}
+.tlineItem.active .tlineDot{background:var(--cyan);box-shadow:0 0 14px var(--cyan)}
+.idTable{width:100%;border-collapse:collapse;font-size:12px;color:#dce8ff}
+.idTable td{border-bottom:1px solid rgba(255,255,255,.07);padding:6px 4px}
+.idTable td:last-child{text-align:right;color:var(--cyan);font-weight:900}
+.stateMetric{display:grid;grid-template-columns:1fr auto;gap:8px;margin:8px 0;color:var(--muted);font-size:13px}
+.stateMetric strong{color:#fff}
+.stateMetric .ok{color:var(--green)}
+.stateMetric .warnv{color:var(--yellow)}
+.resultCard{
+  border-radius:18px;padding:14px;margin-top:10px;
+  background:rgba(100,244,172,.08);
+  border:1px solid rgba(100,244,172,.22);
+  color:#eafff3;line-height:1.45;
+}
+.caption{color:var(--muted);font-size:12px;line-height:1.45;margin-top:8px}
+
+/* Overlay pipeline completa */
+.pipelineOverlay{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(3,7,18,.78);backdrop-filter:blur(14px);
+  display:none;padding:22px;overflow:auto;
+}
+.pipelineOverlay.open{display:block}
+.pipelineShell{
+  width:min(1500px,98vw);margin:0 auto;
+  min-height:calc(100vh - 44px);
+  border-radius:30px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(56,217,255,.18), transparent 30%),
+    radial-gradient(circle at 85% 18%, rgba(167,139,250,.18), transparent 28%),
+    linear-gradient(180deg, rgba(14,22,42,.98), rgba(7,11,22,.98));
+  border:1px solid rgba(255,255,255,.11);
+  box-shadow:0 30px 90px rgba(0,0,0,.58);
+  padding:20px;
+}
+.pipelineTop{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+.pipelineTop h2{margin:0;font-size:clamp(24px,3vw,40px);letter-spacing:-.04em}
+.pipelineTop p{margin:6px 0 0;color:var(--muted);line-height:1.45}
+.closePipeline{width:46px;height:46px;border-radius:16px;font-size:18px;background:rgba(255,255,255,.07)}
+.pipelineControls{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:12px;border-radius:20px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);margin-bottom:14px;
+}
+.pipelineControls .left,.pipelineControls .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pipelineProgress{height:10px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);margin-bottom:16px}
+#pipelineProgressFill{height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--cyan),var(--purple));transition:width .35s ease}
+.pipelineStageCard{display:grid;grid-template-columns:minmax(270px,400px) 1fr;gap:16px}
+@media (max-width:1000px){.pipelineStageCard{grid-template-columns:1fr}}
+.pipelineInfo{
+  border-radius:24px;padding:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09)
+}
+.pipelineInfo h3{margin:0 0 8px;font-size:22px}
+.pipelineInfo p{color:var(--muted);line-height:1.5}
+.pipelineCanvasBox{
+  position:relative;min-height:675px;border-radius:24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(56,217,255,.12), transparent 30%),
+    radial-gradient(circle at 70% 60%, rgba(167,139,250,.12), transparent 32%),
+    rgba(5,9,19,.35);
+  border:1px solid rgba(255,255,255,.08);overflow:hidden;
+}
+.pipelineCanvasBox:after{
+  content:"";position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size:32px 32px;pointer-events:none
+}
+#pipelineSvg{position:relative;z-index:2;width:100%;height:675px;display:block}
+.pipeRect{fill:rgba(255,255,255,.055);stroke:rgba(255,255,255,.12);stroke-width:1.2}
+.pipeRect.done{fill:rgba(110,168,255,.16);stroke:rgba(110,168,255,.42)}
+.pipeRect.active{fill:rgba(100,244,172,.13);stroke:rgba(100,244,172,.8);stroke-width:2;filter:drop-shadow(0 0 12px rgba(100,244,172,.45))}
+.pipeText{fill:#eaf2ff;font-size:14px;font-weight:900}
+.pipeTiny{fill:#9fb2d8;font-size:11px;font-weight:650}
+.pipeLink{stroke:rgba(159,178,216,.26);stroke-width:2;fill:none;marker-end:url(#arrowHead)}
+.pipeLink.done{stroke:rgba(110,168,255,.45)}
+.pipeLink.active{stroke:rgba(56,217,255,.95);stroke-dasharray:8 8;animation:dashFlow .75s linear infinite;filter:drop-shadow(0 0 9px rgba(56,217,255,.48))}
+@keyframes dashFlow{to{stroke-dashoffset:-32}}
+.pipeData{
+  fill:rgba(56,217,255,.18);
+  stroke:rgba(56,217,255,.72);
+  stroke-width:1.4;
+}
+.pipeData.active{fill:rgba(100,244,172,.35);stroke:rgba(100,244,172,1);filter:drop-shadow(0 0 12px rgba(100,244,172,.68));animation:pipePulse .65s ease-in-out infinite alternate}
+@keyframes pipePulse{from{opacity:.65}to{opacity:1}}
+.pipeLegend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;color:var(--muted);font-size:12px}
+.legendPill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.legendDot{width:10px;height:10px;border-radius:50%;background:var(--cyan)}
+.legendDot.active{background:var(--green);box-shadow:0 0 12px var(--green)}
+.legendDot.done{background:var(--blue)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">
+      <h1>Dentro un sistema RAG: dal documento alla risposta</h1>
+      <p>Animazione didattica del flusso: upload documentale → ingestion → chunking → embedding gerarchico → vector DB → query → retrieval semantico → reranking → prompt finale → generazione.</p>
+    </div>
+    <button id="openPipelineBtn" class="actionBadge" type="button">🧭 Vista pipeline completa</button>
+  </div>
+
+  <div class="controls">
+    <div class="control-left">
+      <button id="playBtn">▶ Play</button>
+      <button id="prevBtn" class="secondary">← Step</button>
+      <button id="nextBtn" class="secondary">Step →</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+    <div class="control-right">
+      <label>Velocità <input id="speed" type="range" min="700" max="4500" step="100" value="2200"></label>
+      <div class="kv">Fase: <strong id="stageNum">1</strong></div>
+      <div class="kv">Modalità: <strong>Step-by-step</strong></div>
+    </div>
+  </div>
+  <div class="progressWrap"><div id="progressFill"></div></div>
+
+  <div class="layout">
+    <aside>
+      <div id="docPanel" class="panel">
+        <h3><span class="dot"></span>Documenti caricati</h3>
+        <small>Il RAG parte da documenti esterni che il modello non conosce nativamente.</small>
+        <div class="stateMetric"><span>PDF / DOCX / HTML</span><strong class="ok">3 file</strong></div>
+        <div class="stateMetric"><span>Parsing</span><strong id="parseState">in attesa</strong></div>
+      </div>
+
+      <div id="chunkPanel" class="panel">
+        <h3><span class="dot purple"></span>Chunk e metadati</h3>
+        <small>I documenti vengono divisi in parti recuperabili e collegati ai metadati.</small>
+        <div class="stateMetric"><span>Chunk L3</span><strong>128</strong></div>
+        <div class="stateMetric"><span>Parent link</span><strong class="ok">attivi</strong></div>
+      </div>
+
+      <div id="embedPanel" class="panel">
+        <h3><span class="dot green"></span>Embedding index</h3>
+        <small>Ogni nodo gerarchico ha un vettore semantico indicizzato.</small>
+        <div class="stateMetric"><span>L0 Documento</span><strong>3</strong></div>
+        <div class="stateMetric"><span>L1 Sezioni</span><strong>18</strong></div>
+        <div class="stateMetric"><span>L2 Paragrafi</span><strong>64</strong></div>
+        <div class="stateMetric"><span>L3 Chunk</span><strong>128</strong></div>
+      </div>
+
+      <div id="queryPanel" class="panel">
+        <h3><span class="dot yellow"></span>Query utente</h3>
+        <small>La domanda viene trasformata in embedding e confrontata con l'indice.</small>
+        <div class="contextText" style="font-size:15px">Come viene gestito il diritto di cancellazione?</div>
+      </div>
+    </aside>
+
+    <main class="scene">
+      <div class="sceneTop">
+        <div>
+          <h2 id="stageTitle" class="stageTitle"></h2>
+          <p id="stageSub" class="stageSub"></p>
+        </div>
+        <div id="modeBadge" class="cycleBadge">RAG pipeline</div>
+      </div>
+      <div id="canvas" class="canvas"></div>
+      <div id="explain" class="explain"></div>
+    </main>
+
+    <aside>
+      <div id="timelinePanel" class="panel">
+        <h3><span class="dot orange"></span>Timeline RAG</h3>
+        <small>Ogni passaggio aggiunge un pezzo: ingestione, indicizzazione, recupero e generazione.</small>
+        <div class="timeline" id="stageTimeline"></div>
+      </div>
+
+      <div id="retrievalPanel" class="panel">
+        <h3><span class="dot green"></span>Top risultati</h3>
+        <small>Risultati dimostrativi del retrieval semantico.</small>
+        <div id="smallResults"></div>
+      </div>
+
+      <div id="answerPanel" class="panel">
+        <h3><span class="dot"></span>Risposta generata</h3>
+        <small>Il modello genera token usando il contesto recuperato.</small>
+        <div id="answerBox" class="resultCard" style="display:none"></div>
+      </div>
+
+      <div class="panel">
+        <h3><span class="dot yellow"></span>Nota didattica</h3>
+        <small>Il RAG non riaddestra il modello: recupera informazioni esterne e le inserisce nel prompt. L'LLM continua a prevedere il prossimo token, ma con più contesto.</small>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="pipelineOverlay" class="pipelineOverlay" aria-hidden="true">
+  <div class="pipelineShell">
+    <div class="pipelineTop">
+      <div>
+        <h2>Vista pipeline completa: tutti i flussi principali del RAG</h2>
+        <p>Questa vista mostra il percorso end-to-end: documento → indice vettoriale → domanda → retrieval → reranker → prompt → LLM → risposta.</p>
+      </div>
+      <button id="closePipelineBtn" class="closePipeline" type="button">✕</button>
+    </div>
+
+    <div class="pipelineControls">
+      <div class="left">
+        <button id="pipePlayBtn" type="button">▶ Avvia</button>
+        <button id="pipePrevBtn" class="secondary" type="button">← Step</button>
+        <button id="pipeNextBtn" class="secondary" type="button">Step →</button>
+        <button id="pipeResetBtn" class="secondary" type="button">Reset</button>
+      </div>
+      <div class="right">
+        <label>Velocità scena <input id="pipeSpeed" type="range" min="350" max="2600" step="50" value="1050"></label>
+        <div class="kv">Fase pipeline: <strong id="pipeStepLabel">1</strong></div>
+      </div>
+    </div>
+
+    <div class="pipelineProgress"><div id="pipelineProgressFill"></div></div>
+
+    <div class="pipelineStageCard">
+      <div class="pipelineInfo">
+        <h3 id="pipePhaseTitle">Upload documentale</h3>
+        <p id="pipePhaseDesc">I documenti entrano nel sistema.</p>
+        <div class="genContextBox" style="margin-top:14px;padding:14px;border-radius:18px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.08)">
+          <div style="color:var(--muted);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Oggetto in movimento</div>
+          <div id="pipeObject" class="contextText">Documento GDPR.pdf</div>
+        </div>
+        <div class="pipeLegend">
+          <span class="legendPill"><span class="legendDot done"></span>già attraversato</span>
+          <span class="legendPill"><span class="legendDot active"></span>fase attiva</span>
+          <span class="legendPill"><span class="legendDot"></span>fase successiva</span>
+        </div>
+      </div>
+
+      <div class="pipelineCanvasBox">
+        <svg id="pipelineSvg" viewBox="0 0 1180 675" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+
+const stages = [
+  {
+    id:"upload",
+    title:"1. Upload documentale",
+    sub:"Il sistema riceve documenti esterni: PDF, DOCX, HTML, email, knowledge base o database esportati.",
+    active:["docPanel"],
+    explain:"Il punto di partenza del RAG non è il modello, ma una base documentale. Il modello non viene addestrato su questi documenti: il sistema li prepara per poterli recuperare quando servono."
+  },
+  {
+    id:"ingestion",
+    title:"2. Ingestion e parsing",
+    sub:"Il contenuto viene estratto, pulito e trasformato in testo utilizzabile.",
+    active:["docPanel"],
+    explain:"L'ingestion comprende parsing, estrazione del testo, rimozione di boilerplate, normalizzazione, gestione di tabelle e, se necessario, OCR. L'obiettivo è ottenere testo affidabile prima della fase di indicizzazione."
+  },
+  {
+    id:"chunking",
+    title:"3. Chunking semantico",
+    sub:"Il testo viene diviso in unità recuperabili: sezioni, paragrafi, chunk.",
+    active:["chunkPanel"],
+    explain:"Un documento intero è troppo grande e generico per essere recuperato bene. I chunk sono porzioni abbastanza piccole da essere precise, ma abbastanza grandi da mantenere contesto."
+  },
+  {
+    id:"metadata",
+    title:"4. Metadati e parent link",
+    sub:"Ogni chunk viene collegato al documento, alla sezione, alla pagina e alla posizione originale.",
+    active:["chunkPanel"],
+    explain:"I metadati sono essenziali: permettono di citare la fonte, filtrare i risultati, risalire al documento originale e ricostruire il contesto intorno al chunk recuperato."
+  },
+  {
+    id:"embeddingModel",
+    title:"5. Embedding model: dal testo al vettore",
+    sub:"Un modello encoder trasforma un testo in un unico vettore semantico.",
+    active:["embedPanel"],
+    explain:"L'embedding model tokenizza il testo, lo fa passare in un Transformer encoder e poi comprime gli stati finali dei token in un solo vettore tramite pooling."
+  },
+  {
+    id:"pooling",
+    title:"6. Pooling: tanti token → un embedding",
+    sub:"Gli embedding contestualizzati dei token vengono aggregati in un singolo vettore.",
+    active:["embedPanel"],
+    explain:"Le tecniche tipiche sono CLS pooling, mean pooling o weighted pooling. Il risultato è un vettore che rappresenta il significato complessivo del testo."
+  },
+  {
+    id:"hierarchy",
+    title:"7. Embedding gerarchico L0-L1-L2-L3",
+    sub:"Il sistema crea embedding a più livelli: documento, capitolo, paragrafo, chunk.",
+    active:["embedPanel","chunkPanel"],
+    explain:"La gerarchia consente ricerca grossolana e fine: L0 trova il documento rilevante, L1 la sezione, L2 il paragrafo, L3 il chunk specifico da passare al modello."
+  },
+  {
+    id:"vectorDb",
+    title:"8. Indicizzazione nel Vector Database",
+    sub:"Gli embedding vengono memorizzati in un indice vettoriale ricercabile.",
+    active:["embedPanel"],
+    explain:"Il Vector DB conserva vettore, testo, metadati e collegamenti gerarchici. La ricerca successiva non confronta testo con testo, ma vettore con vettore."
+  },
+  {
+    id:"query",
+    title:"9. Query dell'utente",
+    sub:"L'utente pone una domanda in linguaggio naturale.",
+    active:["queryPanel"],
+    explain:"La domanda non viene subito inviata al modello generativo. Prima viene trasformata in embedding e usata per recuperare i contenuti più vicini."
+  },
+  {
+    id:"queryEmbedding",
+    title:"10. Embedding della query",
+    sub:"La domanda attraversa lo stesso embedding model e diventa un vettore.",
+    active:["queryPanel","embedPanel"],
+    explain:"Domanda e documenti devono trovarsi nello stesso spazio vettoriale. Solo così è possibile misurare la loro vicinanza semantica."
+  },
+  {
+    id:"cosine",
+    title:"11. Retrieval semantico: similarità del coseno",
+    sub:"Il vettore della query viene confrontato con gli embedding indicizzati.",
+    active:["retrievalPanel","embedPanel"],
+    explain:"La similarità del coseno misura l'angolo tra due vettori. Se puntano nella stessa direzione, sono semanticamente simili; se sono distanti, il contenuto è meno rilevante."
+  },
+  {
+    id:"topk",
+    title:"12. Top-K retrieval",
+    sub:"Il sistema seleziona i chunk con punteggio semantico più alto.",
+    active:["retrievalPanel"],
+    explain:"Il retrieval è veloce e ampio: serve a ridurre migliaia o milioni di chunk a una lista breve di candidati plausibili."
+  },
+  {
+    id:"reranker",
+    title:"13. Reranker / Cross-Encoder",
+    sub:"Il reranker legge coppie Query + Chunk e ricalcola la rilevanza.",
+    active:["retrievalPanel"],
+    explain:"Il retriever confronta vettori separati. Il reranker legge insieme domanda e chunk, quindi può capire meglio se il testo risponde davvero alla domanda."
+  },
+  {
+    id:"context",
+    title:"14. Costruzione del contesto finale",
+    sub:"I chunk migliori vengono ordinati, deduplicati e inseriti nel prompt.",
+    active:["retrievalPanel"],
+    explain:"Il context builder prepara il materiale per l'LLM: include istruzioni, domanda, chunk selezionati, fonti, metadati e vincoli di risposta."
+  },
+  {
+    id:"prompt",
+    title:"15. Prompt finale per l'LLM",
+    sub:"Il modello generativo riceve domanda + contesto recuperato.",
+    active:["answerPanel"],
+    explain:"Dal punto di vista dell'LLM, i documenti recuperati sono semplicemente token aggiunti al contesto. Il modello non viene aggiornato: legge il contesto e continua la sequenza."
+  },
+  {
+    id:"generation",
+    title:"16. Generazione della risposta",
+    sub:"L'LLM genera la risposta token dopo token usando il contesto RAG.",
+    active:["answerPanel"],
+    explain:"La generazione funziona come in un LLM standard: Transformer → logits → softmax → prossimo token. La differenza è che ora il contesto contiene anche i chunk recuperati."
+  },
+  {
+    id:"answer",
+    title:"17. Risposta con fonti",
+    sub:"Il sistema restituisce una risposta e, se previsto, i riferimenti ai documenti usati.",
+    active:["answerPanel"],
+    explain:"La risposta finale può includere citazioni, link ai chunk, pagina, sezione o documento di origine. Questo rende il risultato più verificabile."
+  }
+];
+
+const retrievalResults = [
+  {chunk:"Chunk 18", title:"Diritto di cancellazione", sim:.89, dist:.11, rerank:.97},
+  {chunk:"Chunk 52", title:"Gestione richieste interessati", sim:.82, dist:.18, rerank:.89},
+  {chunk:"Chunk 9", title:"Base giuridica trattamento", sim:.76, dist:.24, rerank:.93},
+  {chunk:"Chunk 101", title:"Backup e log", sim:.31, dist:.69, rerank:.21}
+];
+
+let step = 0;
+let playing = false;
+let timer = null;
+
+function escapeHtml(s){
+  return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+}
+function current(){ return {stage:stages[step], stageIdx:step}; }
+function wrapCanvas(html){ return `<div class="rainbowScan"></div>${html}`; }
+function vectorBars(n=18){
+  const vals = [42,68,34,82,56,73,28,61,91,47,78,52,64,36,88,55,69,31,83,40];
+  return `<div class="vectorBars">${vals.slice(0,n).map((h,i)=>`<span class="bar" style="height:${h}px;animation-delay:${i*35}ms"></span>`).join("")}</div>`;
+}
+function miniMatrix(n=96){
+  return `<div class="miniMatrix">${Array.from({length:n},(_,i)=>`<span class="cell ${(i%9===0 || i%17===0 || i%23===0)?'hot':''}"></span>`).join("")}</div>`;
+}
+function renderSide(){
+  const {stage, stageIdx} = current();
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  stage.active.forEach(id=>$(id)?.classList.add("active"));
+  $("stageNum").textContent = `${stageIdx+1}/${stages.length}`;
+  $("progressFill").style.width = `${(step/(stages.length-1))*100}%`;
+  $("parseState").textContent = step >= 1 ? "completato" : "in attesa";
+  $("parseState").className = step >= 1 ? "ok" : "";
+  renderTimeline(stageIdx);
+  renderSmallResults(stage.id);
+  if(stage.id === "answer"){
+    $("answerBox").style.display = "block";
+    $("answerBox").innerHTML = "Il diritto di cancellazione viene gestito tramite una procedura dedicata: ricezione della richiesta, verifica dell'identità, valutazione dei presupposti e riscontro all'interessato nei termini previsti. <br><br><strong>Fonti:</strong> Chunk 18, Chunk 9.";
+  }else{
+    $("answerBox").style.display = "none";
+  }
+}
+function renderTimeline(activeIdx){
+  $("stageTimeline").innerHTML = stages.map((s,i)=>`
+    <div class="tlineItem ${i===activeIdx?'active':''}">
+      <span class="tlineDot"></span>
+      <span>${i+1}. ${s.title.replace(/^\d+\.\s*/,'')}</span>
+    </div>`).join("");
+}
+function renderSmallResults(stageId){
+  const visible = ["cosine","topk","reranker","context","prompt","generation","answer"].includes(stageId);
+  if(!visible){
+    $("smallResults").innerHTML = `<small style="color:var(--muted)">I risultati compariranno dopo l'embedding della query.</small>`;
+    return;
+  }
+  const useRerank = ["reranker","context","prompt","generation","answer"].includes(stageId);
+  const sorted = [...retrievalResults].sort((a,b)=> (useRerank ? b.rerank-a.rerank : b.sim-a.sim));
+  $("smallResults").innerHTML = sorted.slice(0,4).map((r,i)=>`
+    <div class="scoreRow" style="grid-template-columns:70px 1fr 48px;margin:8px 0">
+      <div class="scoreLabel">${r.chunk}</div>
+      <div class="scoreTrack"><div class="scoreFill" style="width:${(useRerank ? r.rerank : r.sim)*100}%"></div></div>
+      <div class="scoreVal">${(useRerank ? r.rerank : r.sim).toFixed(2)}</div>
+    </div>`).join("");
+}
+function renderCanvas(){
+  const {stage} = current();
+  $("stageTitle").textContent = stage.title;
+  $("stageSub").textContent = stage.sub;
+  $("explain").innerHTML = stage.explain;
+  let html = "";
+  switch(stage.id){
+    case "upload":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large">
+            <div class="docIcon">PDF</div>
+            <h4>Policy Privacy.pdf</h4>
+            <p>Documento originale</p>
+          </div>
+          <div class="flowCard large">
+            <div class="docIcon">DOC</div>
+            <h4>Procedure interne.docx</h4>
+            <p>Documento operativo</p>
+          </div>
+          <div class="flowCard large">
+            <div class="docIcon">WEB</div>
+            <h4>Knowledge base</h4>
+            <p>Pagina HTML</p>
+          </div>
+        </div>
+        <div class="warn">Il RAG parte da fonti esterne: non modifica i pesi dell'LLM, prepara documenti da recuperare al momento della domanda.</div>`);
+      break;
+    case "ingestion":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large"><h4>Documento grezzo</h4><p>PDF, DOCX, HTML, tabelle, immagini</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Parsing</h4><p>estrazione testo, tabelle, metadati</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Testo pulito</h4><p>contenuto normalizzato, pronto per il chunking</p></div>
+        </div>
+        <div class="promptBox">
+          <strong>Testo estratto:</strong><br>
+          Il diritto di cancellazione consente all'interessato di ottenere la rimozione dei propri dati personali in determinate condizioni previste dal GDPR...
+        </div>`);
+      break;
+    case "chunking":
+      html = wrapCanvas(`
+        <h3 style="margin-top:0">Dal documento ai chunk recuperabili</h3>
+        <div class="chunkGrid">
+          <div class="chunk"><h4>Chunk 18</h4><p>Il diritto di cancellazione consente all'interessato di ottenere la rimozione dei propri dati personali...</p></div>
+          <div class="chunk"><h4>Chunk 19</h4><p>La richiesta viene presa in carico dal referente privacy e tracciata nel registro delle richieste...</p></div>
+          <div class="chunk"><h4>Chunk 20</h4><p>Il riscontro all'interessato deve essere fornito entro i termini previsti dalla normativa applicabile...</p></div>
+        </div>
+        <div class="warn">Il chunking efficace è semantico: evita di spezzare una frase importante a metà e mantiene abbastanza contesto per rispondere.</div>`);
+      break;
+    case "metadata":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Chunk</h4>
+            <p>"Il diritto di cancellazione consente..."</p>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Metadati</h4>
+            <table class="idTable">
+              <tr><td>document_id</td><td>policy_01</td></tr>
+              <tr><td>pagina</td><td>12</td></tr>
+              <tr><td>sezione</td><td>Diritti interessati</td></tr>
+              <tr><td>parent</td><td>L2_par_3.2</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="warn">I metadati permettono citazioni, filtri, sicurezza, tracciabilità e risalita gerarchica al documento originale.</div>`);
+      break;
+    case "embeddingModel":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Testo chunk</h4>
+            <p>Il diritto di cancellazione consente...</p>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Tokenizer</h4>
+            <div class="tokenList" style="justify-content:center">
+              ${["Il","diritto","cancellazione","dati","GDPR"].map((t,i)=>`<span class="token" style="animation-delay:${i*70}ms">${t}</span>`).join("")}
+            </div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Transformer Encoder</h4>
+            ${miniMatrix(64)}
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Embedding</h4>
+            ${vectorBars(14)}
+          </div>
+        </div>
+        <div class="warn">Un embedding model non genera parole: produce un vettore che rappresenta il significato del testo.</div>`);
+      break;
+    case "pooling":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide"><h4>Embedding finali dei token</h4>${miniMatrix(80)}<p>n token × d dimensioni</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Pooling</h4><p>CLS / Mean / Weighted</p><p class="formula">mean(T₁...Tₙ)</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Un solo vettore</h4>${vectorBars(15)}<p>embedding del chunk</p></div>
+        </div>
+        <div class="warn">Il pooling comprime molti embedding contestualizzati in una rappresentazione unica del testo.</div>`);
+      break;
+    case "hierarchy":
+      html = wrapCanvas(`
+        <div class="hierarchy">
+          <div class="tree">
+            <h3 style="margin-top:0">Struttura gerarchica</h3>
+            <div class="treeNode"><span class="square l0"></span><strong>L0 Documento</strong> · Policy Privacy.pdf</div>
+            <div class="treeNode indent1"><span class="square l1"></span><strong>L1 Sezione</strong> · Diritti interessati</div>
+            <div class="treeNode indent2"><span class="square l2"></span><strong>L2 Paragrafo</strong> · Cancellazione</div>
+            <div class="treeNode indent3"><span class="square l3"></span><strong>L3 Chunk 18</strong> · testo specifico</div>
+            <div class="treeNode indent3"><span class="square l3"></span><strong>L3 Chunk 19</strong> · procedura</div>
+          </div>
+          <div class="tree">
+            <h3 style="margin-top:0">Ogni livello ha un embedding</h3>
+            <table class="levelTable">
+              <tr><th>Livello</th><th>Uso</th><th>Vettore</th></tr>
+              <tr><td><span class="levelPill l0pill">L0</span></td><td>routing documento</td><td>${vectorBars(8)}</td></tr>
+              <tr><td><span class="levelPill l1pill">L1</span></td><td>sezione</td><td>${vectorBars(8)}</td></tr>
+              <tr><td><span class="levelPill l2pill">L2</span></td><td>paragrafo</td><td>${vectorBars(8)}</td></tr>
+              <tr><td><span class="levelPill l3pill">L3</span></td><td>chunk preciso</td><td>${vectorBars(8)}</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="warn">La gerarchia evita due errori opposti: recuperare un documento troppo generico o un frammento troppo isolato.</div>`);
+      break;
+    case "vectorDb":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large"><h4>Embedding</h4>${vectorBars(14)}</div>
+          <div class="arrow"></div>
+          <div class="flowCard large wide">
+            <h4>Vector Database</h4>
+            ${miniMatrix(128)}
+            <p style="margin-top:10px">vettore + testo + metadati + parent link</p>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Indice ANN</h4><p>ricerca approssimata veloce tra molti vettori</p></div>
+        </div>
+        <div class="warn">Il Vector DB non contiene "risposte"; contiene rappresentazioni vettoriali dei pezzi di documento.</div>`);
+      break;
+    case "query":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide">
+            <h4>Domanda utente</h4>
+            <div class="contextText">Come viene gestito il diritto di cancellazione?</div>
+          </div>
+          <div class="arrow"></div>
+          <div class="flowCard large">
+            <h4>Obiettivo RAG</h4>
+            <p>trovare i pezzi documentali più utili prima di generare</p>
+          </div>
+        </div>
+        <div class="warn">Il RAG separa recupero e generazione: prima trova fonti, poi chiede all'LLM di rispondere usando quelle fonti.</div>`);
+      break;
+    case "queryEmbedding":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large wide"><h4>Query</h4><p>Come viene gestito il diritto di cancellazione?</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Embedding Model</h4>${miniMatrix(64)}</div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Eq</h4>${vectorBars(16)}<p>embedding della query</p></div>
+        </div>
+        <div class="warn">La query e i chunk devono essere nello stesso spazio vettoriale per poter confrontare la similarità.</div>`);
+      break;
+    case "cosine":
+      html = wrapCanvas(`
+        <div class="searchPlot">
+          <div class="plotBox">
+            <h3 style="margin-top:0">Similarità del coseno</h3>
+            <svg viewBox="0 0 520 310">
+              <line class="axis" x1="55" y1="260" x2="475" y2="260"/>
+              <line class="axis" x1="55" y1="260" x2="55" y2="35"/>
+              <line class="vec q" x1="55" y1="260" x2="385" y2="105"/>
+              <line class="vec good" x1="55" y1="260" x2="410" y2="122"/>
+              <line class="vec mid" x1="55" y1="260" x2="335" y2="162"/>
+              <line class="vec bad" x1="55" y1="260" x2="180" y2="72"/>
+              <path class="angleArc" d="M 120 232 A 72 72 0 0 1 128 206"/>
+              <text x="390" y="98" fill="#a78bfa" font-weight="900">Eq</text>
+              <text x="413" y="145" fill="#64f4ac" font-weight="900">Chunk 18</text>
+              <text x="333" y="184" fill="#ffd166" font-weight="900">Chunk 52</text>
+              <text x="182" y="66" fill="#ff6b6b" font-weight="900">Chunk 101</text>
+              <text x="105" y="217" fill="#ffd166" font-weight="900">θ piccolo</text>
+            </svg>
+            <p class="formula">cos(θ) = (A · B) / (||A|| · ||B||)</p>
+            <p class="caption">Più l'angolo è piccolo, più la similarità è alta. Spesso si usa distanza = 1 - similarità.</p>
+          </div>
+          <div class="scoreBox">
+            <h3 style="margin-top:0">Confronto Eq vs chunk</h3>
+            ${retrievalResults.map(r=>`
+              <div class="scoreRow">
+                <div class="scoreLabel">${r.chunk}</div>
+                <div class="scoreTrack"><div class="scoreFill" style="width:${r.sim*100}%"></div></div>
+                <div class="scoreVal">${r.sim.toFixed(2)}</div>
+              </div>`).join("")}
+            <div class="warn">Esempio: Chunk 18 ha similarità 0.89 e distanza del coseno 0.11.</div>
+          </div>
+        </div>`);
+      break;
+    case "topk":
+      html = wrapCanvas(`
+        <h3 style="margin-top:0">Top-K risultati del retrieval</h3>
+        <div class="rankList">
+          ${retrievalResults.map((r,i)=>`
+            <div class="rankItem">
+              <div class="rankNum">${i+1}</div>
+              <div><strong>${r.chunk}</strong> · ${r.title}<br><span style="color:var(--muted);font-size:12px">cosine similarity ${(r.sim).toFixed(2)} · distance ${(r.dist).toFixed(2)}</span></div>
+              <div class="rankScore">${r.sim.toFixed(2)}</div>
+            </div>`).join("")}
+        </div>
+        <div class="warn">Il retriever è veloce ma non perfetto: trova candidati semanticamente vicini, non necessariamente i migliori per rispondere.</div>`);
+      break;
+    case "reranker":
+      const reranked = [...retrievalResults].sort((a,b)=>b.rerank-a.rerank);
+      html = wrapCanvas(`
+        <div class="rerankGrid">
+          <div class="tree">
+            <h3 style="margin-top:0">Input al reranker</h3>
+            ${retrievalResults.slice(0,3).map(r=>`
+              <div class="rankItem" style="grid-template-columns:1fr 34px 1fr">
+                <div><strong>Query</strong><br><span style="color:var(--muted);font-size:12px">diritto di cancellazione</span></div>
+                <div class="rankNum">+</div>
+                <div><strong>${r.chunk}</strong><br><span style="color:var(--muted);font-size:12px">${r.title}</span></div>
+              </div>`).join("")}
+          </div>
+          <div class="tree">
+            <h3 style="margin-top:0">Nuovo ranking</h3>
+            ${reranked.map((r,i)=>`
+              <div class="rankItem">
+                <div class="rankNum">${i+1}</div>
+                <div><strong>${r.chunk}</strong> · ${r.title}<br><span style="color:var(--muted);font-size:12px">score reranker</span></div>
+                <div class="rankScore">${r.rerank.toFixed(2)}</div>
+              </div>`).join("")}
+          </div>
+        </div>
+        <div class="warn">Il reranker costa di più, ma legge insieme query e chunk. Per questo può correggere l'ordine prodotto dalla sola similarità vettoriale.</div>`);
+      break;
+    case "context":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large"><h4>Top chunk</h4><p>Chunk 18<br>Chunk 9<br>Chunk 52</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Deduplica</h4><p>rimuove contenuti ripetuti o troppo simili</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Ordine</h4><p>fonti più rilevanti e coerenti prima</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Context pack</h4><p>testo + fonte + pagina + istruzioni</p></div>
+        </div>
+        <div class="warn">Il contesto finale deve essere utile al modello: breve, rilevante, citabile e coerente con la domanda.</div>`);
+      break;
+    case "prompt":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="promptBox" style="width:min(760px,100%)">
+            <strong>SYSTEM:</strong> Rispondi usando solo il contesto fornito.<br><br>
+            <strong>CONTESTO:</strong><br>
+            [Chunk 18] Il diritto di cancellazione consente all'interessato...<br>
+            [Chunk 9] La richiesta deve essere valutata rispetto ai presupposti...<br>
+            [Chunk 52] Il processo prevede ricezione, verifica, tracciamento e riscontro...<br><br>
+            <strong>DOMANDA:</strong><br>
+            Come viene gestito il diritto di cancellazione?
+          </div>
+        </div>
+        <div class="warn">Qui avviene il passaggio chiave: i documenti recuperati diventano token aggiunti al contesto dell'LLM.</div>`);
+      break;
+    case "generation":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard large"><h4>Prompt RAG</h4><p>contesto recuperato + domanda</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>LLM</h4>${miniMatrix(80)}<p>Transformer generativo</p></div>
+          <div class="arrow"></div>
+          <div class="flowCard large"><h4>Token</h4><div class="tokenList" style="justify-content:center">
+            ${["Il"," diritto"," viene"," gestito"," tramite"," procedura","..."].map((t,i)=>`<span class="token pred" style="animation-delay:${i*100}ms">${t}</span>`).join("")}
+          </div></div>
+        </div>
+        <div class="warn">L'LLM non “vede” il database: vede il testo recuperato nel prompt e genera la risposta token per token.</div>`);
+      break;
+    case "answer":
+      html = wrapCanvas(`
+        <div class="bigFlow">
+          <div class="flowCard xwide">
+            <h4>Risposta finale</h4>
+            <div class="resultCard">
+              Il diritto di cancellazione viene gestito attraverso una procedura che prevede la ricezione della richiesta, la verifica dell'identità dell'interessato, la valutazione dei presupposti e il riscontro entro i termini previsti. La gestione viene tracciata internamente e collegata alle fonti documentali pertinenti.<br><br>
+              <strong>Fonti:</strong> Chunk 18 · Chunk 9 · Chunk 52
+            </div>
+          </div>
+        </div>
+        <div class="warn">La qualità finale dipende dalla catena completa: documenti puliti, chunking corretto, embedding coerenti, retrieval preciso, reranking e prompt ben costruito.</div>`);
+      break;
+  }
+  $("canvas").innerHTML = html;
+}
+
+function render(){
+  renderSide();
+  renderCanvas();
+}
+function next(){
+  if(step < stages.length-1){step++;render()}else{stop()}
+}
+function prev(){if(step>0){step--;render()}}
+function reset(){step=0;stop();render()}
+function play(){playing=true;$("playBtn").textContent="⏸ Pausa";schedule()}
+function stop(){playing=false;$("playBtn").textContent="▶ Play";if(timer)clearTimeout(timer)}
+function schedule(){
+  if(!playing)return;
+  timer=setTimeout(()=>{if(step>=stages.length-1){stop();return}next();schedule()}, Number($("speed").value));
+}
+$("playBtn").addEventListener("click",()=>playing?stop():play());
+$("nextBtn").addEventListener("click",()=>{stop();next()});
+$("prevBtn").addEventListener("click",()=>{stop();prev()});
+$("resetBtn").addEventListener("click",reset);
+$("speed").addEventListener("input",()=>{if(playing){clearTimeout(timer);schedule()}});
+
+/* Pipeline completa */
+const pipePhases = [
+  {title:"1. Upload documentale", desc:"I documenti entrano nel sistema.", obj:"Policy Privacy.pdf", group:0},
+  {title:"2. Ingestion", desc:"Parsing, estrazione testo, pulizia.", obj:"Testo pulito", group:1},
+  {title:"3. Chunking", desc:"Il testo viene diviso in chunk e collegato ai metadati.", obj:"Chunk 18 / 19 / 20", group:2},
+  {title:"4. Embedding gerarchico", desc:"Si creano vettori L0-L1-L2-L3.", obj:"Vettori gerarchici", group:3},
+  {title:"5. Vector DB", desc:"Gli embedding vengono indicizzati.", obj:"Indice vettoriale", group:4},
+  {title:"6. Query utente", desc:"Arriva la domanda.", obj:"Diritto di cancellazione?", group:5},
+  {title:"7. Query embedding", desc:"La domanda diventa un vettore Eq.", obj:"Eq", group:6},
+  {title:"8. Retrieve cosine", desc:"Eq viene confrontato con i vettori indicizzati.", obj:"Top-K candidati", group:7},
+  {title:"9. Reranker", desc:"Query + Chunk vengono rivalutati insieme.", obj:"Ranking corretto", group:8},
+  {title:"10. Prompt finale", desc:"I chunk migliori vengono inseriti nel contesto.", obj:"Prompt RAG", group:9},
+  {title:"11. LLM generation", desc:"L'LLM genera token usando il contesto.", obj:"Token output", group:10},
+  {title:"12. Risposta con fonti", desc:"Il sistema restituisce risposta e riferimenti.", obj:"Risposta citabile", group:11}
+];
+let pipeStep = 0;
+let pipePlaying = false;
+let pipeTimer = null;
+
+function pipeNodeClass(group, active){
+  if(group < active) return "done";
+  if(group === active) return "active";
+  return "";
+}
+function pipeLinkClass(toGroup, active){
+  if(toGroup < active) return "done";
+  if(toGroup === active) return "active";
+  return "";
+}
+function renderPipeSvg(){
+  const active = pipePhases[pipeStep].group;
+  const nodes = [
+    {label:"Upload", sub:"PDF / DOCX", x:90, y:110},
+    {label:"Ingestion", sub:"Parsing", x:260, y:110},
+    {label:"Chunking", sub:"split + metadata", x:430, y:110},
+    {label:"L0-L3 Embedding", sub:"documento → chunk", x:610, y:110},
+    {label:"Vector DB", sub:"indice vettoriale", x:810, y:110},
+    {label:"Query", sub:"domanda utente", x:180, y:360},
+    {label:"Eq", sub:"query embedding", x:355, y:360},
+    {label:"Retrieve", sub:"cosine similarity", x:535, y:360},
+    {label:"Reranker", sub:"cross-encoder", x:720, y:360},
+    {label:"Prompt RAG", sub:"contesto + domanda", x:905, y:360},
+    {label:"LLM", sub:"generazione", x:1040, y:215},
+    {label:"Risposta", sub:"fonti", x:1040, y:520}
+  ];
+  const links = [
+    [0,1],[1,2],[2,3],[3,4],
+    [5,6],[6,7],[4,7],[7,8],[8,9],[9,10],[10,11]
+  ];
+  let svg = `<defs>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="rgba(159,178,216,.8)" />
+    </marker>
+  </defs>`;
+
+  links.forEach(([a,b])=>{
+    const n1=nodes[a], n2=nodes[b];
+    const cls = pipeLinkClass(b, active);
+    const midY = (n1.y+n2.y)/2;
+    if(Math.abs(n1.y-n2.y) < 5){
+      svg += `<path class="pipeLink ${cls}" d="M ${n1.x+66} ${n1.y} C ${n1.x+100} ${n1.y}, ${n2.x-100} ${n2.y}, ${n2.x-66} ${n2.y}"/>`;
+    }else{
+      svg += `<path class="pipeLink ${cls}" d="M ${n1.x+66} ${n1.y} C ${n1.x+120} ${midY}, ${n2.x-120} ${midY}, ${n2.x-66} ${n2.y}"/>`;
+    }
+  });
+
+  nodes.forEach((n,i)=>{
+    const cls = pipeNodeClass(i, active);
+    const w = i===3 || i===9 ? 150 : 132;
+    const h = 74;
+    svg += `<rect class="pipeRect ${cls}" x="${n.x-w/2}" y="${n.y-h/2}" width="${w}" height="${h}" rx="18"></rect>`;
+    svg += `<text class="pipeText" x="${n.x}" y="${n.y-5}" text-anchor="middle">${n.label}</text>`;
+    svg += `<text class="pipeTiny" x="${n.x}" y="${n.y+18}" text-anchor="middle">${n.sub}</text>`;
+  });
+
+  // cosine mini explanation around retrieve
+  if(active === 7){
+    svg += `<g transform="translate(460 455)">
+      <rect x="-120" y="-36" width="260" height="118" rx="18" fill="rgba(255,209,102,.08)" stroke="rgba(255,209,102,.22)"/>
+      <text x="10" y="-12" text-anchor="middle" fill="#ffe3aa" font-size="13" font-weight="900">cos(θ)=A·B/(||A||·||B||)</text>
+      <line x1="-70" y1="58" x2="52" y2="-3" stroke="#a78bfa" stroke-width="4" stroke-linecap="round"/>
+      <line x1="-70" y1="58" x2="72" y2="6" stroke="#64f4ac" stroke-width="4" stroke-linecap="round"/>
+      <path d="M -33 42 A 45 45 0 0 1 -28 31" fill="none" stroke="#ffd166" stroke-width="3" stroke-dasharray="4 4"/>
+      <text x="84" y="7" fill="#64f4ac" font-size="12" font-weight="900">Chunk</text>
+      <text x="58" y="-8" fill="#a78bfa" font-size="12" font-weight="900">Eq</text>
+      <text x="-69" y="78" fill="#9fb2d8" font-size="11">angolo piccolo = alta similarità</text>
+    </g>`;
+  }
+
+  // moving data object
+  const n = nodes[active];
+  svg += `<circle class="pipeData active" cx="${n.x}" cy="${n.y+58}" r="12">
+    <animate attributeName="r" values="8;18;8" dur="1s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;.35;1" dur="1s" repeatCount="indefinite"/>
+  </circle>`;
+  return svg;
+}
+function renderPipe(){
+  const p = pipePhases[pipeStep];
+  $("pipePhaseTitle").textContent = p.title;
+  $("pipePhaseDesc").textContent = p.desc;
+  $("pipeObject").textContent = p.obj;
+  $("pipeStepLabel").textContent = `${pipeStep+1}/${pipePhases.length}`;
+  $("pipelineProgressFill").style.width = `${(pipeStep/(pipePhases.length-1))*100}%`;
+  $("pipelineSvg").innerHTML = renderPipeSvg();
+}
+function pipeNext(){if(pipeStep<pipePhases.length-1){pipeStep++;renderPipe()}else{pipeStop()}}
+function pipePrev(){if(pipeStep>0){pipeStep--;renderPipe()}}
+function pipeReset(){pipeStep=0;pipeStop();renderPipe()}
+function pipePlay(){pipePlaying=true;$("pipePlayBtn").textContent="⏸ Pausa";pipeSchedule()}
+function pipeStop(){pipePlaying=false;$("pipePlayBtn").textContent="▶ Avvia";if(pipeTimer)clearTimeout(pipeTimer)}
+function pipeSchedule(){
+  if(!pipePlaying)return;
+  pipeTimer=setTimeout(()=>{if(pipeStep>=pipePhases.length-1){pipeStop();return}pipeNext();pipeSchedule()}, Number($("pipeSpeed").value));
+}
+$("openPipelineBtn").addEventListener("click",()=>{stop();$("pipelineOverlay").classList.add("open");$("pipelineOverlay").setAttribute("aria-hidden","false");renderPipe()});
+$("closePipelineBtn").addEventListener("click",()=>{pipeStop();$("pipelineOverlay").classList.remove("open");$("pipelineOverlay").setAttribute("aria-hidden","true")});
+$("pipePlayBtn").addEventListener("click",()=>pipePlaying?pipeStop():pipePlay());
+$("pipeNextBtn").addEventListener("click",()=>{pipeStop();pipeNext()});
+$("pipePrevBtn").addEventListener("click",()=>{pipeStop();pipePrev()});
+$("pipeResetBtn").addEventListener("click",pipeReset);
+$("pipeSpeed").addEventListener("input",()=>{if(pipePlaying){clearTimeout(pipeTimer);pipeSchedule()}});
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Escape" && $("pipelineOverlay").classList.contains("open")){
+    pipeStop();$("pipelineOverlay").classList.remove("open");$("pipelineOverlay").setAttribute("aria-hidden","true");
+  }
+});
+render();
+</script>
+</body>
+</html>

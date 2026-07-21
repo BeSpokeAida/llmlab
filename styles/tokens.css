@@ -1,0 +1,67 @@
+/* LLMLab — Design tokens */
+
+:root {
+  /* Accents (allineati alle sim LLM/RAG) */
+  --ll-cyan:       #38d9ff;
+  --ll-cyan-dim:   #1cb8db;
+  --ll-cyan-soft:  rgba(56, 217, 255, 0.14);
+  --ll-purple:     #a78bfa;
+  --ll-purple-soft: rgba(167, 139, 250, 0.16);
+  --ll-green:      #64f4ac;
+  --ll-green-soft: rgba(100, 244, 172, 0.14);
+
+  /* Surfaces */
+  --bg:          #070b16;
+  --bg-elevated: #111a33;
+  --bg-panel:    #151f3a;
+  --bg-hover:    rgba(255, 255, 255, 0.05);
+  --bg-card:     #10182d;
+
+  /* Border */
+  --border:       rgba(45, 60, 103, 0.9);
+  --border-light: rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --fg:         #edf3ff;
+  --fg-muted:   #9fb2d8;
+  --fg-subtle:  #6f81a8;
+  --fg-heading: #ffffff;
+
+  /* Banner */
+  --banner-bg:   #0a1628;
+  --banner-mid:  #12203a;
+  --banner-text: #7dd3fc;
+  --banner-sub:  rgba(125, 211, 252, 0.55);
+
+  /* Font */
+  --font-display: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-ui:      "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", Consolas, monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 34px;
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* Shape */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-full: 999px;
+
+  --trans: 180ms ease;
+  --trans-slow: 280ms ease;
+
+  color-scheme: dark;
+}
