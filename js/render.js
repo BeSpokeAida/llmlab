@@ -1,9 +1,8 @@
 /* LLMLab — Render */
 window.LLMLab = window.LLMLab || {};
 
-(function (L) {
-  const ic = L.ic;
-  const VIEWS = L.VIEWS;
+(function () {
+  const { ic, VIEWS } = window.LLMLab;
 
   function renderHub() {
     return `
@@ -62,7 +61,7 @@ window.LLMLab = window.LLMLab || {};
   `;
   }
 
-  L.renderApp = function renderApp(state) {
+  window.LLMLab.renderApp = function renderApp(state) {
     const el = document.getElementById("app");
     if (!el) return;
 
@@ -79,4 +78,4 @@ window.LLMLab = window.LLMLab || {};
 
     el.innerHTML = renderSim(meta);
   };
-})(window.LLMLab);
+})();
